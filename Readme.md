@@ -1,29 +1,11 @@
-# HTTPure
+# HTTPurple 🪁
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/cprussin/purescript-httpure/main/License)
-[![Latest release](http://img.shields.io/github/release/cprussin/purescript-httpure.svg)](https://github.com/cprussin/purescript-httpure/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/sigma-andex/purescript-httpurple/main/License)
+[![Latest release](http://img.shields.io/github/release/sigma-andex/purescript-httpurple.svg)](https://github.com/sigma-andex/purescript-httpurple/releases)
 [![purescript-httpure on Pursuit](https://pursuit.purescript.org/packages/purescript-httpure/badge)](https://pursuit.purescript.org/packages/purescript-httpure)
 
-A purescript HTTP server framework.
+A 🎨 colourful fork of the amazing [HTTPure](https://github.com/citizennet/purescript-httpure) http server framework.
 
-HTTPure is:
-
-- Well-tested (see our [tests](./test/Test))
-- Well-documented (see our [documentation](./docs))
-- Built to take advantage of PureScript language features for flexible and
-  extensible routing
-- Pure (no `set`, `get`, `use`, etc)
-
-## Status
-
-This project is currently fairly stable, but has not reached it's 1.0 release
-yet. You can track what's left before it gets there by looking at our
-[roadmap](https://github.com/cprussin/purescript-httpure/projects). The API
-signatures are _mostly_ stable, but are subject to change before the 1.0 release
-if there's a good reason to change them.
-
-If you'd like to help us get to 1.0 quicker, please contribute! To get started,
-check our [contributing guide](./Contributing.md).
 
 ## Installation
 
@@ -59,10 +41,6 @@ You can also take a look at [our guides](./docs).
 HTTPure ships with a number of [examples](./docs/Examples). To run an example,
 in the project root, run:
 
-```bash
-nix-shell --run 'example <Example Name>'
-```
-
 Or, without `nix`:
 
 ```bash
@@ -77,28 +55,8 @@ the example server.
 To run the test suite, in the project root run:
 
 ```bash
-nix-shell --run check
+spago -x test.dhall test
 ```
-
-Or, if `nix` isn't your thing:
-
-```bash
-purs-tidy check src test docs && spago -x test.dhall test
-```
-
-## Contributing
-
-We are open to accepting contributions! Please see
-the [contributing guide](Contributing.md).
-
-## People
-
-HTTPure is written and maintained
-by [Connor Prussin](https://connor.prussin.net) and [Petri
-Lehtinen](http://www.digip.org/).
-
-We are open to accepting contributions! Please see
-the [contributing guide](./Contributing.md).
 
 ## License
 

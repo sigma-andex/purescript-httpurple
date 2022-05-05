@@ -3,36 +3,51 @@ module Test.HTTPure.ServerSpec where
 import Prelude
 
 import Control.Monad.Except (throwError)
+import Data.Either (Either(..))
+import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(Nothing))
 import Data.Options ((:=))
-import Data.String (joinWith)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
 import Foreign.Object (empty)
 import HTTPure.Request (Request)
-import HTTPure.Response (ResponseM, ok)
+import HTTPure.Response (ResponseM, notFound, ok)
 import HTTPure.Server (serve, serve', serveSecure, serveSecure')
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Sync (readTextFile)
-import Node.HTTP.Secure (cert, certString, key, keyString)
-import Test.HTTPure.TestHelpers (Test, get, get', getStatus, (?=))
+import Node.HTTP.Secure (key, keyString, cert, certString)
+import Routing.Duplex (RouteDuplex')
+import Routing.Duplex as RD
+import Routing.Duplex.Generic as G
+import Routing.Duplex.Generic as RG
+import Test.HTTPure.TestHelpers (Test, (?=), get, get', getStatus)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (expectError)
 
-mockRouter :: Request -> ResponseM
-mockRouter { path } = ok $ "/" <> joinWith "/" path
+data Route = Test
+
+derive instance Generic Route _
+
+route :: RouteDuplex' Route
+route = RD.root $ G.sum
+  { "Test": RD.path "test" RG.noArgs
+  }
+
+mockRouter :: Request Route -> ResponseM
+mockRouter { route: Right Test } = ok $ RD.print route Test
+mockRouter { route } = notFound
 
 serveSpec :: Test
 serveSpec =
   describe "serve" do
     it "boots a server on the given port" do
-      close <- liftEffect $ serve 8080 mockRouter $ pure unit
+      close <- liftEffect $ serve 8080 route mockRouter $ pure unit
       out <- get 8080 empty "/test"
       liftEffect $ close $ pure unit
       out ?= "/test"
     it "responds with a 500 upon unhandled exceptions" do
       let router _ = throwError $ error "fail!"
-      close <- liftEffect $ serve 8080 router $ pure unit
+      close <- liftEffect $ serve 8080 route router $ pure unit
       status <- getStatus 8080 empty "/"
       liftEffect $ close $ pure unit
       status ?= 500
@@ -44,7 +59,7 @@ serve'Spec =
       let options = { hostname: "localhost", port: 8080, backlog: Nothing }
       close <-
         liftEffect
-          $ serve' options mockRouter
+          $ serve' options route mockRouter
           $ pure unit
       out <- get 8080 empty "/test"
       liftEffect $ close $ pure unit
@@ -57,7 +72,7 @@ serveSecureSpec =
       it "boots a server on the given port" do
         close <-
           liftEffect
-            $ serveSecure 8080 "./test/Mocks/Certificate.cer" "./test/Mocks/Key.key" mockRouter
+            $ serveSecure 8080 "./test/Mocks/Certificate.cer" "./test/Mocks/Key.key" route mockRouter
             $ pure unit
         out <- get' 8080 empty "/test"
         liftEffect $ close $ pure unit
@@ -65,7 +80,7 @@ serveSecureSpec =
     describe "with invalid key and cert files" do
       it "throws" do
         expectError $ liftEffect
-          $ serveSecure 8080 "" "" mockRouter
+          $ serveSecure 8080 "" "" route mockRouter
           $ pure unit
 
 serveSecure'Spec :: Test
@@ -82,7 +97,7 @@ serveSecure'Spec =
         sslOpts <- liftEffect $ sslOptions
         close <-
           liftEffect
-            $ serveSecure' sslOpts options mockRouter
+            $ serveSecure' sslOpts options route mockRouter
             $ pure unit
         out <- get' 8080 empty "/test"
         liftEffect $ close $ pure unit
