@@ -21,7 +21,9 @@ route = RD.root $ RG.sum
 -- | Boot up the server
 main :: ServerM
 main =
-  serve 8080 { route, router: const $ ok "hello world!", notFoundHandler: Nothing } do
+  serve { port: 8080, onStarted } { route, router: const $ ok "hello world!" }
+  where
+  onStarted = do
     log " ┌────────────────────────────────────────────┐"
     log " │ Server now up on port 8080                 │"
     log " │                                            │"

@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect (Effect)
 import Effect.Class.Console (log)
 import HTTPurple (Request, ResponseM, ServerM, notFound, ok, serve)
 import Routing.Duplex (RouteDuplex')
@@ -30,7 +31,10 @@ router _ = notFound
 -- | Boot up the server
 main :: ServerM
 main =
-  serve 8080 { route, router, notFoundHandler: Nothing } do
+  serve { port: 8080, onStarted } { route, router }
+  where
+  onStarted :: Effect Unit
+  onStarted = do
     log " ┌───────────────────────────────────────┐"
     log " │ Server now up on port 8080            │"
     log " │                                       │"

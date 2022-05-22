@@ -1,28 +1,38 @@
 module HTTPurple.Server
-  ( ServerM
+  ( ClosingHandler(..)
+  , ListenOptions
+  , ListenOptionsR
+  , RoutingSettings
+  , RoutingSettingsR
+  , ServerM
   , serve
-  , serve'
-  , serveSecure
-  , serveSecure'
   ) where
 
 import Prelude
 
-import Data.Maybe (Maybe(Nothing), maybe)
-import Data.Options (Options, (:=))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Options ((:=))
+import Data.Posix.Signal (Signal(..))
 import Data.Profunctor.Choice ((|||))
 import Effect (Effect)
 import Effect.Aff (catchError, message, runAff)
 import Effect.Class (liftEffect)
+import Effect.Class.Console (log)
 import Effect.Console (error)
 import HTTPurple.Request (Request, fromHTTPRequest)
 import HTTPurple.Response (ResponseM, internalServerError, notFound, send)
+import Justifill (justifill)
+import Justifill.Fillable (class FillableFields)
+import Justifill.Justifiable (class JustifiableFields)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Sync (readTextFile)
-import Node.HTTP (ListenOptions, close, listen)
-import Node.HTTP (Request, Response, createServer) as HTTP
-import Node.HTTP.Secure (SSLOptions, cert, certString, key, keyString)
+import Node.HTTP (ListenOptions, Request, Response, createServer) as HTTP
+import Node.HTTP (close, listen)
+import Node.HTTP.Secure (cert, certString, key, keyString)
 import Node.HTTP.Secure (createServer) as HTTPS
+import Node.Process (onSignal)
+import Prim.Row (class Union)
+import Prim.RowList (class RowToList)
 import Routing.Duplex as RD
 
 -- | The `ServerM` is just an `Effect` containing a callback to close the
@@ -30,11 +40,27 @@ import Routing.Duplex as RD
 -- | methods.
 type ServerM = Effect (Effect Unit -> Effect Unit)
 
-type RoutingSettings route =
-  { route :: RD.RouteDuplex' route
-  , router :: Request route -> ResponseM
+data ClosingHandler = DefaultClosingHandler | NoClosingHandler
+
+type ListenOptionsR =
+  ( hostname :: Maybe String
+  , port :: Maybe Int
+  , backlog :: Maybe Int
+  , closingHandler :: Maybe ClosingHandler
   , notFoundHandler :: Maybe (Request Unit -> ResponseM)
-  }
+  , onStarted :: Maybe (Effect Unit)
+  , certFile :: Maybe String
+  , keyFile :: Maybe String
+  )
+
+type ListenOptions = { | ListenOptionsR }
+
+type RoutingSettingsR route =
+  ( route :: RD.RouteDuplex' route
+  , router :: Request route -> ResponseM
+  )
+
+type RoutingSettings route = { | RoutingSettingsR route }
 
 -- | Given a router, handle unhandled exceptions it raises by
 -- | responding with 500 Internal Server Error.
@@ -65,74 +91,74 @@ handleRequest { route, router, notFoundHandler } request httpresponse =
 defaultNotFoundHandler :: forall route. Request route -> ResponseM
 defaultNotFoundHandler = const notFound
 
--- | Given a `ListenOptions` object, a function mapping `Request` to
--- | `ResponseM`, and a `ServerM` containing effects to run on boot, creates and
--- | runs a HTTPurple server without SSL.
-serve' ::
-  forall route.
-  ListenOptions ->
-  RoutingSettings route ->
-  Effect Unit ->
-  ServerM
-serve' options { route, router, notFoundHandler } onStarted = do
-  server <- HTTP.createServer (handleRequest { route, router, notFoundHandler: maybe defaultNotFoundHandler identity notFoundHandler })
-  listen server options onStarted
-  pure $ close server
+justifillListenOptions ::
+  forall from fromRL via missing missingList.
+  RowToList missing missingList =>
+  FillableFields missingList () missing =>
+  Union via missing (ListenOptionsR) =>
+  RowToList from fromRL =>
+  JustifiableFields fromRL from () via =>
+  { | from } ->
+  ListenOptions
+justifillListenOptions = justifill
 
--- | Given a `Options HTTPS.SSLOptions` object and a `HTTP.ListenOptions`
--- | object, a function mapping `Request` to `ResponseM`, and a `ServerM`
--- | containing effects to run on boot, creates and runs a HTTPurple server with
--- | SSL.
-serveSecure' ::
-  forall route.
-  Options SSLOptions ->
-  ListenOptions ->
-  RoutingSettings route ->
-  Effect Unit ->
-  ServerM
-serveSecure' sslOptions options { route, router, notFoundHandler } onStarted = do
-  server <- HTTPS.createServer sslOptions (handleRequest { route, router, notFoundHandler: maybe defaultNotFoundHandler identity notFoundHandler })
-  listen server options onStarted
-  pure $ close server
-
--- | Given a port number, return a `HTTP.ListenOptions` `Record`.
-listenOptions :: Int -> ListenOptions
-listenOptions port =
-  { hostname: "0.0.0.0"
-  , port
-  , backlog: Nothing
-  }
-
--- | Create and start a server. This is the main entry point for HTTPurple. Takes
--- | a port number on which to listen, a function mapping `Request` to
--- | `ResponseM`, and a `ServerM` containing effects to run after the server has
--- | booted (usually logging). Returns an `ServerM` containing the server's
--- | effects.
+-- | Given a `ListenOptions` and a `RoutingSettings`, creates and
+-- | runs a HTTPurple server.
 serve ::
-  forall route.
-  Int ->
+  forall route from fromRL via missing missingList.
+  RowToList missing missingList =>
+  FillableFields missingList () missing =>
+  Union via missing (ListenOptionsR) =>
+  RowToList from fromRL =>
+  JustifiableFields fromRL from () via =>
+  { | from } ->
   RoutingSettings route ->
-  Effect Unit ->
   ServerM
-serve = serve' <<< listenOptions
+serve inputOptions { route, router } = do
+  let
+    filledOptions :: ListenOptions
+    filledOptions = justifillListenOptions inputOptions
 
--- | Create and start an SSL server. This method is the same as `serve`, but
--- | takes additional SSL arguments.  The arguments in order are:
--- | 1. A port number
--- | 2. A path to a cert file
--- | 3. A path to a private key file
--- | 4. A handler method which maps `Request` to `ResponseM`
--- | 5. A callback to call when the server is up
-serveSecure ::
-  forall route.
-  Int ->
-  String ->
-  String ->
-  RoutingSettings route ->
-  Effect Unit ->
-  ServerM
-serveSecure port certFile keyFile routingSettings onStarted = do
-  cert' <- readTextFile UTF8 certFile
-  key' <- readTextFile UTF8 keyFile
-  let sslOpts = key := keyString key' <> cert := certString cert'
-  serveSecure' sslOpts (listenOptions port) routingSettings onStarted
+    hostname = fromMaybe defaultHostname filledOptions.hostname
+    port = fromMaybe defaultPort filledOptions.port
+    onStarted = fromMaybe (defaultOnStart hostname port) filledOptions.onStarted
+
+    options :: HTTP.ListenOptions
+    options =
+      { hostname
+      , port
+      , backlog: filledOptions.backlog
+      }
+
+    routingSettings =
+      { route
+      , router
+      , notFoundHandler: fromMaybe defaultNotFoundHandler filledOptions.notFoundHandler
+      }
+
+    sslOptions = { certFile: _, keyFile: _ } <$> filledOptions.certFile <*> filledOptions.keyFile
+  server <- case sslOptions of
+    Just { certFile, keyFile } ->
+      do
+        cert' <- readTextFile UTF8 certFile
+        key' <- readTextFile UTF8 keyFile
+        let sslOpts = key := keyString key' <> cert := certString cert'
+        HTTPS.createServer sslOpts (handleRequest routingSettings)
+    Nothing -> HTTP.createServer (handleRequest routingSettings)
+  listen server options onStarted
+  let closingHandler = close server
+  case filledOptions.closingHandler of
+    Just NoClosingHandler -> pure closingHandler
+    _ -> do
+      onSignal SIGINT $ closingHandler $ log "Received SIGINT, stopping service now."
+      onSignal SIGTERM $ closingHandler $ log "Received SIGTERM, stopping service now."
+      pure closingHandler
+
+defaultHostname :: String
+defaultHostname = "0.0.0.0"
+
+defaultPort :: Int
+defaultPort = 8080
+
+defaultOnStart :: String -> Int -> Effect Unit
+defaultOnStart hostname port = log $ "HTTPurple 🪁 up and running on http://" <> hostname <> ":" <> show port
