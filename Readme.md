@@ -129,15 +129,11 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Effect.Console (log)
-import HTTPurple (type (<+>), Request, ResponseM, ServerM, found', headers, ok, notFound, orElse, serve, (<+>))
-import Record as Record
+import HTTPurple (ServerM, found', headers, ok, serve)
 import Routing.Duplex (RouteDuplex', as, optional, print, root, segment, string)
 import Routing.Duplex.Generic as G
 import Routing.Duplex.Generic.Syntax ((/), (?))
-import Type.Prelude (Proxy(..))
 
--- define the ADT representing your Api
 data Route
   = Home
   | Profile String
@@ -164,7 +160,6 @@ sortFromString = case _ of
 sort :: RouteDuplex' String -> RouteDuplex' Sort
 sort = as sortToString sortFromString
 
--- define the api routes
 api :: RouteDuplex' Route
 api = root $ G.sum
   { "Home": G.noArgs
@@ -173,36 +168,19 @@ api = root $ G.sum
   , "Search": "search" ? { q: string, sorting: optional <<< sort }
   }
 
--- example of a second api for meta information 
-data Route2 = Health
-
-derive instance Generic Route2 _
-
-meta :: RouteDuplex' Route2
-meta = root $ G.sum { "Health": "health" / G.noArgs }
-
--- optionally define a custom notFoundHandler
-notFoundHandler :: Request Unit -> ResponseM
-notFoundHandler = const $ ok "Nothing to see here"
-
--- combine routes using `<+>`, combine routes using `orElse`
 main :: ServerM
-main = serve { port: 8080, notFoundHandler } { route: api <+> meta, router: apiRouter `orElse` metaRouter }
+main = serve { port: 8080 } { route: api, router: apiRouter }
   where
 
   apiRouter { route: Home } = ok "hello world!"
   apiRouter { route: (Profile profile) } = ok $ "hello " <> profile <> "!"
   apiRouter { route: (Account account) } = found' redirect ""
     where
-    -- to create a redirect just print the data constructor
     redirect = headers [ Tuple "Location" $ print api $ Profile account ]
-
   apiRouter { route: (Search { q, sorting }) } = ok $ "searching for query " <> q <> " " <> case sorting of
     Just Asc -> "ascending"
     Just Desc -> "descending"
     Nothing -> "defaulting to ascending"
-
-  metaRouter { route: Health } = ok """{"status":"ok"}"""
 ```
 
 ### Startup options
