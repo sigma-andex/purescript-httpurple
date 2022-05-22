@@ -23,7 +23,6 @@ middlewareRoute = RD.root $ RG.sum
   { "Middleware": "middleware" / RG.noArgs
   }
 
-
 data SayHello = SayHello
 
 derive instance Generic SayHello _
@@ -34,7 +33,8 @@ sayHelloRoute = RD.root $ RG.sum
   }
 
 -- | A middleware that logs at the beginning and end of each request
-loggingMiddleware :: forall route.
+loggingMiddleware ::
+  forall route.
   (Request route -> ResponseM) ->
   Request route ->
   ResponseM
@@ -48,7 +48,8 @@ loggingMiddleware router request = do
 
 -- | A middleware that adds the X-Middleware header to the response, if it
 -- | wasn't already in the response
-headerMiddleware :: forall route.
+headerMiddleware ::
+  forall route.
   (Request route -> ResponseM) ->
   Request route ->
   ResponseM
@@ -60,13 +61,13 @@ headerMiddleware router request = do
 
 -- | A middleware that sends the body "Middleware!" instead of running the
 -- | router when requesting /middleware
-pathMiddleware :: forall route.
+pathMiddleware ::
+  forall route.
   (Request route -> ResponseM) ->
-  Request (Middleware <+> route ) ->
+  Request (Middleware <+> route) ->
   ResponseM
 pathMiddleware _ { route: Left Middleware } = ok "Middleware!"
 pathMiddleware router request@{ route: Right r } = router $ Record.set (Proxy :: _ "route") r request
-
 
 -- | Say 'hello' when run, and add a default value to the X-Middleware header
 sayHello :: Request SayHello -> ResponseM
@@ -79,7 +80,9 @@ middlewareStack = loggingMiddleware <<< headerMiddleware <<< pathMiddleware
 -- | Boot up the server
 main :: ServerM
 main =
-  serve 8080 { route: middlewareRoute <+> sayHelloRoute , router: middlewareStack sayHello, notFoundHandler: Nothing } do
+  serve { port: 8080, onStarted } { route: middlewareRoute <+> sayHelloRoute, router: middlewareStack sayHello }
+  where
+  onStarted = do
     log " ┌───────────────────────────────────────┐"
     log " │ Server now up on port 8080            │"
     log " │                                       │"
