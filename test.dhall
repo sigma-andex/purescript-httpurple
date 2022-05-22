@@ -8,6 +8,7 @@ in conf // {
   , "node-child-process"
   , "node-fs-aff"
   , "spec"
+  , "debug"
   , "transformers"
   , "unsafe-coerce" 
   ]

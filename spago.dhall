@@ -4,6 +4,7 @@
   , "arrays"
   , "bifunctors"
   , "console"
+  , "control"
   , "effect"
   , "either"
   , "foldable-traversable"
@@ -18,10 +19,14 @@
   , "options"
   , "ordered-collections"
   , "prelude"
+  , "profunctor"
+  , "record"
   , "refs"
+  , "routing-duplex"
   , "strings"
   , "tuples"
   , "type-equality"
+  , "typelevel-prelude"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
