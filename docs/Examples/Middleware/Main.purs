@@ -1,15 +1,42 @@
 module Examples.Middleware.Main where
 
-import Prelude
+import Prelude hiding ((/))
 
+import Data.Either (Either(..))
+import Data.Generic.Rep (class Generic)
+import Data.Maybe (Maybe(..))
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import HTTPure (Request, ResponseM, ServerM, fullPath, header, ok, ok', serve)
+import HTTPure (type (<+>), Request, ResponseM, ServerM, fullPath, header, ok, ok', serve, (<+>))
+import Record as Record
+import Routing.Duplex as RD
+import Routing.Duplex.Generic as RG
+import Routing.Duplex.Generic.Syntax ((/))
+import Type.Prelude (Proxy(..))
+
+data Middleware = Middleware
+
+derive instance Generic Middleware _
+
+middlewareRoute :: RD.RouteDuplex' Middleware
+middlewareRoute = RD.root $ RG.sum
+  { "Middleware": "middleware" / RG.noArgs
+  }
+
+
+data SayHello = SayHello
+
+derive instance Generic SayHello _
+
+sayHelloRoute :: RD.RouteDuplex' SayHello
+sayHelloRoute = RD.root $ RG.sum
+  { "SayHello": RG.noArgs
+  }
 
 -- | A middleware that logs at the beginning and end of each request
-loggingMiddleware ::
-  (Request -> ResponseM) ->
-  Request ->
+loggingMiddleware :: forall route.
+  (Request route -> ResponseM) ->
+  Request route ->
   ResponseM
 loggingMiddleware router request = do
   liftEffect $ log $ "Request starting for " <> path
@@ -21,9 +48,9 @@ loggingMiddleware router request = do
 
 -- | A middleware that adds the X-Middleware header to the response, if it
 -- | wasn't already in the response
-headerMiddleware ::
-  (Request -> ResponseM) ->
-  Request ->
+headerMiddleware :: forall route.
+  (Request route -> ResponseM) ->
+  Request route ->
   ResponseM
 headerMiddleware router request = do
   response@{ headers } <- router request
@@ -33,25 +60,26 @@ headerMiddleware router request = do
 
 -- | A middleware that sends the body "Middleware!" instead of running the
 -- | router when requesting /middleware
-pathMiddleware ::
-  (Request -> ResponseM) ->
-  Request ->
+pathMiddleware :: forall route.
+  (Request route -> ResponseM) ->
+  Request (Middleware <+> route ) ->
   ResponseM
-pathMiddleware _ { path: [ "middleware" ] } = ok "Middleware!"
-pathMiddleware router request = router request
+pathMiddleware _ { route: Left Middleware } = ok "Middleware!"
+pathMiddleware router request@{ route: Right r } = router $ Record.set (Proxy :: _ "route") r request
+
 
 -- | Say 'hello' when run, and add a default value to the X-Middleware header
-sayHello :: Request -> ResponseM
+sayHello :: Request SayHello -> ResponseM
 sayHello _ = ok' (header "X-Middleware" "router") "hello"
 
 -- | The stack of middlewares to use for the server
-middlewareStack :: (Request -> ResponseM) -> Request -> ResponseM
+middlewareStack :: forall route. (Request route -> ResponseM) -> Request (Either Middleware route) -> ResponseM
 middlewareStack = loggingMiddleware <<< headerMiddleware <<< pathMiddleware
 
 -- | Boot up the server
 main :: ServerM
 main =
-  serve 8080 (middlewareStack sayHello) do
+  serve 8080 { route: middlewareRoute <+> sayHelloRoute , router: middlewareStack sayHello, notFoundHandler: Nothing } do
     log " ┌───────────────────────────────────────┐"
     log " │ Server now up on port 8080            │"
     log " │                                       │"

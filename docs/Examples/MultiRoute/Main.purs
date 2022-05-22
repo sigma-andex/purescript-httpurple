@@ -1,20 +1,35 @@
 module Examples.MultiRoute.Main where
 
-import Prelude
+import Prelude hiding ((/))
 
+import Data.Generic.Rep (class Generic)
+import Data.Maybe (Maybe(..))
 import Effect.Console (log)
-import HTTPure (Request, ResponseM, ServerM, notFound, ok, serve)
+import HTTPure (Request, ResponseM, ServerM, ok, serve)
+import Routing.Duplex (RouteDuplex')
+import Routing.Duplex as RD
+import Routing.Duplex.Generic as RG
+import Routing.Duplex.Generic.Syntax ((/))
+
+data Route = Hello | GoodBye
+
+derive instance Generic Route _
+
+route :: RouteDuplex' Route
+route = RD.root $ RG.sum
+  { "Hello": "hello" / RG.noArgs
+  , "GoodBye": "goodbye" / RG.noArgs
+  }
 
 -- | Specify the routes
-router :: Request -> ResponseM
-router { path: [ "hello" ] } = ok "hello"
-router { path: [ "goodbye" ] } = ok "goodbye"
-router _ = notFound
+router :: Request Route -> ResponseM
+router { route: Hello } = ok "hello"
+router { route: GoodBye } = ok "goodbye"
 
 -- | Boot up the server
 main :: ServerM
 main =
-  serve 8080 router do
+  serve 8080 { route, router, notFoundHandler: Nothing } do
     log " ┌────────────────────────────────┐"
     log " │ Server now up on port 8080     │"
     log " │                                │"

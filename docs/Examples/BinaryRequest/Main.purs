@@ -2,20 +2,33 @@ module Examples.BinaryRequest.Main where
 
 import Prelude
 
+import Data.Generic.Rep (class Generic)
+import Data.Maybe (Maybe(..))
 import Effect.Console (log)
 import HTTPure (Request, ResponseM, ServerM, ok, serve, toBuffer)
 import Node.Buffer (Buffer)
+import Routing.Duplex as RD
+import Routing.Duplex.Generic as RG
+
+data Route = SayHello
+
+derive instance Generic Route _
+
+route :: RD.RouteDuplex' Route
+route = RD.root $ RG.sum
+  { "SayHello": RG.noArgs
+  }
 
 foreign import sha256sum :: Buffer -> String
 
 -- | Respond with file's sha256sum
-router :: Request -> ResponseM
+router :: Request Route -> ResponseM
 router { body } = toBuffer body >>= sha256sum >>> ok
 
 -- | Boot up the server
 main :: ServerM
 main =
-  serve 8080 router do
+  serve 8080 { route, router, notFoundHandler: Nothing } do
     log " ┌─────────────────────────────────────────────────────────┐"
     log " │ Server now up on port 8080                              │"
     log " │                                                         │"

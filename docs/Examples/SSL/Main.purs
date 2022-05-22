@@ -2,8 +2,23 @@ module Examples.SSL.Main where
 
 import Prelude
 
+import Data.Generic.Rep (class Generic)
+import Data.Maybe (Maybe(..))
 import Effect.Console (log)
 import HTTPure (Request, ResponseM, ServerM, ok, serveSecure)
+import Routing.Duplex (RouteDuplex')
+import Routing.Duplex as RD
+import Routing.Duplex.Generic as G
+import Routing.Duplex.Generic as RG
+
+data Route = Test
+
+derive instance Generic Route _
+
+route :: RouteDuplex' Route
+route = RD.root $ G.sum
+  { "Test": RG.noArgs
+  }
 
 -- | The path to the certificate file
 cert :: String
@@ -14,13 +29,13 @@ key :: String
 key = "./docs/Examples/SSL/Key.key"
 
 -- | Say 'hello world!' when run
-sayHello :: Request -> ResponseM
+sayHello :: Request Route -> ResponseM
 sayHello _ = ok "hello world!"
 
 -- | Boot up the server
 main :: ServerM
 main =
-  serveSecure 8080 cert key sayHello do
+  serveSecure 8080 cert key { route, router: sayHello, notFoundHandler: Nothing } do
     log " ┌───────────────────────────────────────────┐"
     log " │ Server now up on port 8080                │"
     log " │                                           │"
