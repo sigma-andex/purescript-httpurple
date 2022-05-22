@@ -102,7 +102,10 @@ spago -x test.dhall test
 
 HTTPurple 🪁 is a fork of [HTTPure](https://github.com/citizennet/purescript-httpure) that I started to freely experiment with some ideas I have on improving the usage experience. Currently I have no intentions on back-porting any of it to HTTPure, as I don't have the time for it and also don't want to restrict myself. 
 
-If you have used HTTPure before, you'll probably want to go through the following changes to get started using HTTPurple 🪁.
+If you have used HTTPure before, you'll probably want to go through the following changes to get started using HTTPurple 🪁:
+* [routing-duplex](#routing-duplex)
+* [startup options](#startup-options)
+* [other improvements](#other-improvmenets)
 
 ### Routing-duplex
 
@@ -237,7 +240,7 @@ main =
   notFoundHandler = const $ ok "Nothing to see here"
 ```
 
-### Minor other improvmenets
+### Other improvmenets
 
 * Default closing handler - A default closing handler is provided so you can just stop your server using `ctrl+x` without having to worry about anything. You can deactivate it by setting `closingHandler: NoClosingHandler` in the listen options.
 
