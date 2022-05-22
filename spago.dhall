@@ -1,4 +1,4 @@
-{ name = "httpure"
+{ name = "httpurple"
 , dependencies =
   [ "aff"
   , "arrays"
@@ -35,5 +35,5 @@
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
 , license = "MIT"
-, repository = "https://github.com/cprussin/purescript-httpure.git"
+, repository = "https://github.com/sigma-andex/purescript-httpurple.git"
 }
