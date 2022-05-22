@@ -1,4 +1,4 @@
-module HTTPure.Query
+module HTTPurple.Query
   ( Query
   , read
   ) where
@@ -11,7 +11,7 @@ import Data.Maybe (fromMaybe)
 import Data.String (Pattern(Pattern), joinWith, split)
 import Data.Tuple (Tuple(Tuple))
 import Foreign.Object (Object, fromFoldable)
-import HTTPure.Utils (replacePlus, urlDecode)
+import HTTPurple.Utils (replacePlus, urlDecode)
 import Node.HTTP (Request, requestURL)
 
 -- | The `Query` type is a `Object` of `Strings`, with one entry per query

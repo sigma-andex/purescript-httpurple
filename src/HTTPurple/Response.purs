@@ -1,4 +1,4 @@
-module HTTPure.Response
+module HTTPurple.Response
   ( Response
   , ResponseM
   , send
@@ -138,11 +138,11 @@ import Prelude
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
-import HTTPure.Body (class Body, defaultHeaders, write)
-import HTTPure.Headers (Headers, empty)
-import HTTPure.Headers (write) as Headers
-import HTTPure.Status (Status)
-import HTTPure.Status
+import HTTPurple.Body (class Body, defaultHeaders, write)
+import HTTPurple.Headers (Headers, empty)
+import HTTPurple.Headers (write) as Headers
+import HTTPurple.Status (Status)
+import HTTPurple.Status
   ( accepted
   , alreadyReported
   , badGateway
@@ -207,7 +207,7 @@ import HTTPure.Status
   ) as Status
 import Node.HTTP (Response) as HTTP
 
--- | The `ResponseM` type simply conveniently wraps up an HTTPure monad that
+-- | The `ResponseM` type simply conveniently wraps up an HTTPurple monad that
 -- | returns a response. This type is the return type of all router/route
 -- | methods.
 type ResponseM = Aff Response
@@ -219,8 +219,8 @@ type Response =
   , writeBody :: HTTP.Response -> Aff Unit
   }
 
--- | Given an HTTP `Response` and a HTTPure `Response`, this method will return
--- | a monad encapsulating writing the HTTPure `Response` to the HTTP `Response`
+-- | Given an HTTP `Response` and a HTTPurple `Response`, this method will return
+-- | a monad encapsulating writing the HTTPurple `Response` to the HTTP `Response`
 -- | and closing the HTTP `Response`.
 send :: forall m. MonadEffect m => MonadAff m => HTTP.Response -> Response -> m Unit
 send httpresponse { status, headers, writeBody } = do

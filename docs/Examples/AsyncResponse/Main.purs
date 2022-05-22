@@ -5,7 +5,7 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Effect.Console (log)
-import HTTPure (Request, ResponseM, ServerM, ok, serve)
+import HTTPurple (Request, ResponseM, ServerM, ok, serve)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (readTextFile)
 import Routing.Duplex as RD

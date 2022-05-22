@@ -1,4 +1,4 @@
-module HTTPure.Utils
+module HTTPurple.Utils
   ( encodeURIComponent
   , replacePlus
   , urlDecode

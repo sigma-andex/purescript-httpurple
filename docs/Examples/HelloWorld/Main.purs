@@ -5,7 +5,7 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Effect.Console (log)
-import HTTPure (ServerM, ok, serve)
+import HTTPurple (ServerM, ok, serve)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
 

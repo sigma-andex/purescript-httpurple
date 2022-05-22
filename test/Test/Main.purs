@@ -3,26 +3,26 @@ module Test.Main where
 import Prelude
 
 import Effect.Aff (launchAff_)
-import Test.HTTPure.BodySpec (bodySpec)
-import Test.HTTPure.HeadersSpec (headersSpec)
-import Test.HTTPure.IntegrationSpec (integrationSpec)
-import Test.HTTPure.LookupSpec (lookupSpec)
-import Test.HTTPure.MethodSpec (methodSpec)
-import Test.HTTPure.PathSpec (pathSpec)
-import Test.HTTPure.QuerySpec (querySpec)
-import Test.HTTPure.RequestSpec (requestSpec)
-import Test.HTTPure.ResponseSpec (responseSpec)
-import Test.HTTPure.ServerSpec (serverSpec)
-import Test.HTTPure.StatusSpec (statusSpec)
-import Test.HTTPure.TestHelpers (TestSuite)
-import Test.HTTPure.UtilsSpec (utilsSpec)
-import Test.HTTPure.VersionSpec (versionSpec)
+import Test.HTTPurple.BodySpec (bodySpec)
+import Test.HTTPurple.HeadersSpec (headersSpec)
+import Test.HTTPurple.IntegrationSpec (integrationSpec)
+import Test.HTTPurple.LookupSpec (lookupSpec)
+import Test.HTTPurple.MethodSpec (methodSpec)
+import Test.HTTPurple.PathSpec (pathSpec)
+import Test.HTTPurple.QuerySpec (querySpec)
+import Test.HTTPurple.RequestSpec (requestSpec)
+import Test.HTTPurple.ResponseSpec (responseSpec)
+import Test.HTTPurple.ServerSpec (serverSpec)
+import Test.HTTPurple.StatusSpec (statusSpec)
+import Test.HTTPurple.TestHelpers (TestSuite)
+import Test.HTTPurple.UtilsSpec (utilsSpec)
+import Test.HTTPurple.VersionSpec (versionSpec)
 import Test.Spec (describe)
 import Test.Spec.Reporter (specReporter)
 import Test.Spec.Runner (runSpec)
 
 main :: TestSuite
-main = launchAff_ $ runSpec [ specReporter ] $ describe "HTTPure" do
+main = launchAff_ $ runSpec [ specReporter ] $ describe "HTTPurple" do
   bodySpec
   headersSpec
   lookupSpec

@@ -1,4 +1,4 @@
-module HTTPure.Request
+module HTTPurple.Request
   ( Request
   , fromHTTPRequest
   , fullPath
@@ -12,19 +12,19 @@ import Data.String (joinWith)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Foreign.Object (isEmpty, toArrayWithKey)
-import HTTPure.Body (RequestBody)
-import HTTPure.Body (read) as Body
-import HTTPure.Headers (Headers)
-import HTTPure.Headers (read) as Headers
-import HTTPure.Method (Method)
-import HTTPure.Method (read) as Method
-import HTTPure.Path (Path)
-import HTTPure.Path (read) as Path
-import HTTPure.Query (Query)
-import HTTPure.Query (read) as Query
-import HTTPure.Utils (encodeURIComponent)
-import HTTPure.Version (Version)
-import HTTPure.Version (read) as Version
+import HTTPurple.Body (RequestBody)
+import HTTPurple.Body (read) as Body
+import HTTPurple.Headers (Headers)
+import HTTPurple.Headers (read) as Headers
+import HTTPurple.Method (Method)
+import HTTPurple.Method (read) as Method
+import HTTPurple.Path (Path)
+import HTTPurple.Path (read) as Path
+import HTTPurple.Query (Query)
+import HTTPurple.Query (read) as Query
+import HTTPurple.Utils (encodeURIComponent)
+import HTTPurple.Version (Version)
+import HTTPurple.Version (read) as Version
 import Node.HTTP (Request) as HTTP
 import Node.HTTP (requestURL)
 import Routing.Duplex as RD
@@ -54,7 +54,7 @@ fullPath request = "/" <> path <> questionMark <> queryParams
   queryParamsArr = toArrayWithKey stringifyQueryParam request.query
   stringifyQueryParam key value = encodeURIComponent key <> "=" <> encodeURIComponent value
 
--- | Given an HTTP `Request` object, this method will convert it to an HTTPure
+-- | Given an HTTP `Request` object, this method will convert it to an HTTPurple
 -- | `Request` object.
 fromHTTPRequest :: forall route. RD.RouteDuplex' route -> HTTP.Request -> Aff (Either (Request Unit) (Request route))
 fromHTTPRequest route request = do

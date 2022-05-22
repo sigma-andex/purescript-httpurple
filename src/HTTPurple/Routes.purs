@@ -1,4 +1,4 @@
-module HTTPure.Routes
+module HTTPurple.Routes
   ( (<+>)
   , combineRoutes
   , orElse
@@ -10,8 +10,8 @@ import Prelude
 import Control.Alt ((<|>))
 import Data.Either (Either(..))
 import Data.Profunctor.Choice ((|||))
-import HTTPure.Request (Request)
-import HTTPure.Response (ResponseM)
+import HTTPurple.Request (Request)
+import HTTPurple.Response (ResponseM)
 import Record as Record
 import Routing.Duplex as RD
 import Type.Proxy (Proxy(..))

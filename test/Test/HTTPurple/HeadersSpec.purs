@@ -1,14 +1,14 @@
-module Test.HTTPure.HeadersSpec where
+module Test.HTTPurple.HeadersSpec where
 
 import Prelude
 
 import Data.Maybe (Maybe(Nothing, Just))
 import Data.Tuple (Tuple(Tuple))
 import Effect.Class (liftEffect)
-import HTTPure.Headers (empty, header, headers, read, write)
-import HTTPure.Lookup ((!!))
-import Test.HTTPure.TestHelpers ((?=))
-import Test.HTTPure.TestHelpers as TestHelpers
+import HTTPurple.Headers (empty, header, headers, read, write)
+import HTTPurple.Lookup ((!!))
+import Test.HTTPurple.TestHelpers ((?=))
+import Test.HTTPurple.TestHelpers as TestHelpers
 import Test.Spec (describe, it)
 
 lookupSpec :: TestHelpers.Test

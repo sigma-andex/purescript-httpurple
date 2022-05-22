@@ -1,4 +1,4 @@
-module Test.HTTPure.RequestSpec where
+module Test.HTTPurple.RequestSpec where
 
 import Prelude
 
@@ -11,15 +11,15 @@ import Data.Tuple (Tuple(Tuple))
 import Effect.Aff (Aff)
 import Effect.Exception (error)
 import Foreign.Object (singleton)
-import HTTPure.Body (toString)
-import HTTPure.Headers (headers)
-import HTTPure.Method (Method(Post))
-import HTTPure.Request (fromHTTPRequest, fullPath)
-import HTTPure.Version (Version(HTTP1_1))
+import HTTPurple.Body (toString)
+import HTTPurple.Headers (headers)
+import HTTPurple.Method (Method(Post))
+import HTTPurple.Request (fromHTTPRequest, fullPath)
+import HTTPurple.Version (Version(HTTP1_1))
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G
 import Routing.Duplex.Generic.Syntax ((?))
-import Test.HTTPure.TestHelpers (Test, mockRequest, (?=))
+import Test.HTTPurple.TestHelpers (Test, mockRequest, (?=))
 import Test.Spec (describe, it)
 
 data Route = Test { a :: Maybe String }

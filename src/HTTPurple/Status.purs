@@ -1,4 +1,4 @@
-module HTTPure.Status
+module HTTPurple.Status
   ( Status
   , write
   -- 1xx

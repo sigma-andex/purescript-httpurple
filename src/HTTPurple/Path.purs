@@ -1,4 +1,4 @@
-module HTTPure.Path
+module HTTPurple.Path
   ( Path
   , read
   ) where
@@ -8,7 +8,7 @@ import Prelude
 import Data.Array (filter, head)
 import Data.Maybe (fromMaybe)
 import Data.String (Pattern(Pattern), split)
-import HTTPure.Utils (urlDecode)
+import HTTPurple.Utils (urlDecode)
 import Node.HTTP (Request, requestURL)
 
 -- | The `Path` type is just sugar for an `Array` of `String` segments that are
