@@ -28,13 +28,13 @@ derive instance Generic Route _
 
 route :: RD.RouteDuplex' Route
 route = RD.root $ G.sum
-  { "Test": "test" ? { a : RD.optional <<< RD.string }
+  { "Test": "test" ? { a: RD.optional <<< RD.string }
   }
 
 getRight :: forall a b. Aff (Either a b) -> Aff b
 getRight input = input >>= either (const throwLeft) pure
   where
-    throwLeft = throwError (error "Invalid route")
+  throwLeft = throwError (error "Invalid route")
 
 fromHTTPRequestSpec :: Test
 fromHTTPRequestSpec =
@@ -72,37 +72,37 @@ fromHTTPRequestSpec =
 --       it "is correct" do
 --         mock <- mockRequest' "/foo/bar" # getRight
 --         fullPath mock ?= "/foo/bar"
-    -- describe "with empty path segments" do
-    --   it "strips the empty segments" do
-    --     mock <- mockRequest' "//foo////bar/"
-    --     fullPath mock ?= "/foo/bar"
-    -- describe "with only query parameters" do
-    --   it "is correct" do
-    --     mock <- mockRequest' "?a=b&c=d"
-    --     fullPath mock ?= "/?a=b&c=d"
-    -- describe "with only empty query parameters" do
-    --   it "is has the default value of '' for the empty parameters" do
-    --     mock <- mockRequest' "?a"
-    --     fullPath mock ?= "/?a="
-    -- describe "with query parameters that have special characters" do
-    --   it "percent encodes query params" do
-    --     mock <- mockRequest' "?a=%3Fx%3Dtest"
-    --     fullPath mock ?= "/?a=%3Fx%3Dtest"
-    -- describe "with empty query parameters" do
-    --   it "strips out the empty arameters" do
-    --     mock <- mockRequest' "?a=b&&&"
-    --     fullPath mock ?= "/?a=b"
-    -- describe "with a mix of segments and query parameters" do
-    --   it "is correct" do
-    --     mock <- mockRequest' "/foo///bar/?&a=b&&c"
-    --     fullPath mock ?= "/foo/bar?a=b&c="
-  -- where
-  -- mockHTTPRequest path = mockRequest "" "POST" path "body" []
+-- describe "with empty path segments" do
+--   it "strips the empty segments" do
+--     mock <- mockRequest' "//foo////bar/"
+--     fullPath mock ?= "/foo/bar"
+-- describe "with only query parameters" do
+--   it "is correct" do
+--     mock <- mockRequest' "?a=b&c=d"
+--     fullPath mock ?= "/?a=b&c=d"
+-- describe "with only empty query parameters" do
+--   it "is has the default value of '' for the empty parameters" do
+--     mock <- mockRequest' "?a"
+--     fullPath mock ?= "/?a="
+-- describe "with query parameters that have special characters" do
+--   it "percent encodes query params" do
+--     mock <- mockRequest' "?a=%3Fx%3Dtest"
+--     fullPath mock ?= "/?a=%3Fx%3Dtest"
+-- describe "with empty query parameters" do
+--   it "strips out the empty arameters" do
+--     mock <- mockRequest' "?a=b&&&"
+--     fullPath mock ?= "/?a=b"
+-- describe "with a mix of segments and query parameters" do
+--   it "is correct" do
+--     mock <- mockRequest' "/foo///bar/?&a=b&&c"
+--     fullPath mock ?= "/foo/bar?a=b&c="
+-- where
+-- mockHTTPRequest path = mockRequest "" "POST" path "body" []
 
-  -- mockRequest' path = mockHTTPRequest path >>= fromHTTPRequest route
+-- mockRequest' path = mockHTTPRequest path >>= fromHTTPRequest route
 
 requestSpec :: Test
 requestSpec =
   describe "Request" do
     fromHTTPRequestSpec
-    --fullPathSpec
+--fullPathSpec

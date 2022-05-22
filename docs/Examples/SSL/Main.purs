@@ -35,14 +35,14 @@ sayHello _ = ok "hello world!"
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { port: 8080, certFile: cert, keyFile: key, onStarted } { route, router: sayHello } 
-  where 
-    onStarted = 
-      do
-        log " ┌───────────────────────────────────────────┐"
-        log " │ Server now up on port 8080                │"
-        log " │                                           │"
-        log " │ To test, run:                             │"
-        log " │  > curl --insecure https://localhost:8080 │"
-        log " │    # => hello world!                      │"
-        log " └───────────────────────────────────────────┘"
+  serve { port: 8080, certFile: cert, keyFile: key, onStarted } { route, router: sayHello }
+  where
+  onStarted =
+    do
+      log " ┌───────────────────────────────────────────┐"
+      log " │ Server now up on port 8080                │"
+      log " │                                           │"
+      log " │ To test, run:                             │"
+      log " │  > curl --insecure https://localhost:8080 │"
+      log " │    # => hello world!                      │"
+      log " └───────────────────────────────────────────┘"

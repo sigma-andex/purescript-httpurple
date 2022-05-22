@@ -16,12 +16,12 @@ import HTTPurple.Server (serve)
 import HTTPurple.Server as Server
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Sync (readTextFile)
-import Node.HTTP.Secure (key, keyString, cert, certString)
+import Node.HTTP.Secure (cert, certString, key, keyString)
 import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G
 import Routing.Duplex.Generic as RG
-import Test.HTTPurple.TestHelpers (Test, (?=), get, get', getStatus)
+import Test.HTTPurple.TestHelpers (Test, get, get', getStatus, (?=))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (expectError)
 

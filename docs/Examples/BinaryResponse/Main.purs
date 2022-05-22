@@ -18,6 +18,7 @@ route :: RD.RouteDuplex' Route
 route = RD.root $ RG.sum
   { "SayHello": RG.noArgs
   }
+
 -- | The path to the file containing the response to send
 filePath :: String
 filePath = "./docs/Examples/BinaryResponse/circle.png"
@@ -32,7 +33,7 @@ router = const $ readFile filePath >>= ok' responseHeaders
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { port: 8080, onStarted } { route, router } 
+  serve { port: 8080, onStarted } { route, router }
   where
   onStarted = do
     log " ┌──────────────────────────────────────┐"

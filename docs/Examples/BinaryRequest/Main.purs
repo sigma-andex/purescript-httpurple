@@ -28,7 +28,7 @@ router { body } = toBuffer body >>= sha256sum >>> ok
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { port: 8080, onStarted } { route, router } 
+  serve { port: 8080, onStarted } { route, router }
   where
   onStarted = do
     log " ┌─────────────────────────────────────────────────────────┐"

@@ -16,15 +16,52 @@ spago install httpurple
 ```purescript
 module Main where
 
-import Prelude
+import Prelude hiding ((/))
 
-import Effect.Console (log)
-import HTTPurple (ServerM, serve, ok)
+import Data.Generic.Rep (class Generic)
+import HTTPurple (ServerM, ok, serve)
+import Routing.Duplex (RouteDuplex', root, segment)
+import Routing.Duplex.Generic (sum)
+import Routing.Duplex.Generic.Syntax ((/))
+
+data Route = Hello String
+
+derive instance Generic Route _
+
+route :: RouteDuplex' Route
+route = root $ sum
+  { "Hello": "hello" / segment
+  }
 
 main :: ServerM
-main = serve 8080 router $ log "Server now up on port 8080"
+main =
+  serve { port: 8080 } { route, router }
   where
-    router _ = ok "hello world!"
+  router { route: Hello name } = ok $ "hello " <> name
+```
+
+then start the server
+
+```bash
+➜ spago run
+           Src   Lib   All
+Warnings   0     0     0  
+Errors     0     0     0  
+[info] Build succeeded.
+HTTPurple 🪁 up and running on http://0.0.0.0:8080
+```
+
+query your server, e.g. using [httpie](https://httpie.io/)
+
+```bash
+➜ http http://localhost:8080/hello/🗺  
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Length: 10
+Date: Sun, 22 May 2022 16:50:52 GMT
+Keep-Alive: timeout=5
+
+hello 🗺
 ```
 
 ## Documentation

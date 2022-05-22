@@ -3,7 +3,6 @@ module Examples.HelloWorld.Main where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect.Console (log)
 import HTTPurple (ServerM, ok, serve)
 import Routing.Duplex as RD
