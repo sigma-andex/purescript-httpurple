@@ -24,7 +24,7 @@
         "purescript-foldable-traversable": "^v6.0.0",
         "purescript-foreign-object": "^v4.0.0",
         "purescript-js-uri": "https://github.com/purescript-contrib/purescript-js-uri.git#v3.0.0",
-        "purescript-justifill": "https://github.com/i-am-the-slime/purescript-justifill.git#v0.3.1",
+        "purescript-justifill": "https://github.com/i-am-the-slime/purescript-justifill.git#v0.5.0",
         "purescript-maybe": "^v6.0.0",
         "purescript-newtype": "^v5.0.0",
         "purescript-node-buffer": "^v8.0.0",
