@@ -34,21 +34,20 @@ route = RD.root $ G.sum
   }
 
 mockRouter :: Request Route -> ResponseM
-mockRouter { route: Right Test } = ok $ RD.print route Test
-mockRouter { route } = notFound
+mockRouter { route: Test } = ok $ RD.print route Test
 
 serveSpec :: Test
 serveSpec =
   describe "serve" do
     it "boots a server on the given port" do
-      close <- liftEffect $ serve 8080 route mockRouter $ pure unit
+      close <- liftEffect $ serve 8080 { route, router: mockRouter, notFoundHandler: Nothing } $ pure unit
       out <- get 8080 empty "/test"
       liftEffect $ close $ pure unit
       out ?= "/test"
     it "responds with a 500 upon unhandled exceptions" do
       let router _ = throwError $ error "fail!"
-      close <- liftEffect $ serve 8080 route router $ pure unit
-      status <- getStatus 8080 empty "/"
+      close <- liftEffect $ serve 8080 { route, router, notFoundHandler: Nothing } $ pure unit
+      status <- getStatus 8080 empty "/test"
       liftEffect $ close $ pure unit
       status ?= 500
 
@@ -59,7 +58,7 @@ serve'Spec =
       let options = { hostname: "localhost", port: 8080, backlog: Nothing }
       close <-
         liftEffect
-          $ serve' options route mockRouter
+          $ serve' options { route, router: mockRouter, notFoundHandler: Nothing }
           $ pure unit
       out <- get 8080 empty "/test"
       liftEffect $ close $ pure unit
@@ -72,7 +71,7 @@ serveSecureSpec =
       it "boots a server on the given port" do
         close <-
           liftEffect
-            $ serveSecure 8080 "./test/Mocks/Certificate.cer" "./test/Mocks/Key.key" route mockRouter
+            $ serveSecure 8080 "./test/Mocks/Certificate.cer" "./test/Mocks/Key.key" { route, router: mockRouter, notFoundHandler: Nothing }
             $ pure unit
         out <- get' 8080 empty "/test"
         liftEffect $ close $ pure unit
@@ -80,7 +79,7 @@ serveSecureSpec =
     describe "with invalid key and cert files" do
       it "throws" do
         expectError $ liftEffect
-          $ serveSecure 8080 "" "" route mockRouter
+          $ serveSecure 8080 "" "" { route, router: mockRouter, notFoundHandler: Nothing }
           $ pure unit
 
 serveSecure'Spec :: Test
@@ -97,7 +96,7 @@ serveSecure'Spec =
         sslOpts <- liftEffect $ sslOptions
         close <-
           liftEffect
-            $ serveSecure' sslOpts options route mockRouter
+            $ serveSecure' sslOpts options { route, router: mockRouter, notFoundHandler: Nothing }
             $ pure unit
         out <- get' 8080 empty "/test"
         liftEffect $ close $ pure unit

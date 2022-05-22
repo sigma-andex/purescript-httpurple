@@ -2,12 +2,25 @@ module Examples.Chunked.Main where
 
 import Prelude
 
+import Data.Generic.Rep (class Generic)
+import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 import HTTPure (Request, ResponseM, ServerM, ok, serve)
 import Node.ChildProcess (defaultSpawnOptions, spawn, stdout)
 import Node.Stream (Readable)
+import Routing.Duplex as RD
+import Routing.Duplex.Generic as RG
+
+data Route = SayHello
+
+derive instance Generic Route _
+
+route :: RD.RouteDuplex' Route
+route = RD.root $ RG.sum
+  { "SayHello": RG.noArgs
+  }
 
 -- | Run a script and return it's stdout stream
 runScript :: String -> Aff (Readable ())
@@ -15,13 +28,13 @@ runScript script =
   liftEffect $ stdout <$> spawn "sh" [ "-c", script ] defaultSpawnOptions
 
 -- | Say 'hello world!' in chunks when run
-sayHello :: Request -> ResponseM
-sayHello = const $ runScript "echo 'hello '; sleep 1; echo 'world!'" >>= ok
+router :: Request Route -> ResponseM
+router = const $ runScript "echo 'hello '; sleep 1; echo 'world!'" >>= ok
 
 -- | Boot up the server
 main :: ServerM
 main =
-  serve 8080 sayHello do
+  serve 8080 { route, router, notFoundHandler: Nothing } do
     log " ┌──────────────────────────────────────┐"
     log " │ Server now up on port 8080           │"
     log " │                                      │"

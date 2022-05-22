@@ -2,27 +2,32 @@ module Examples.Post.Main where
 
 import Prelude
 
+import Data.Generic.Rep (class Generic)
+import Data.Maybe (Maybe(..))
 import Effect.Console (log)
-import HTTPure
-  ( Method(Post)
-  , Request
-  , ResponseM
-  , ServerM
-  , notFound
-  , ok
-  , serve
-  , toString
-  )
+import HTTPure (Method(Post), Request, ResponseM, ServerM, notFound, ok, serve, toString)
+import Routing.Duplex (RouteDuplex')
+import Routing.Duplex as RD
+import Routing.Duplex.Generic as G
+
+data Route = Test
+
+derive instance Generic Route _
+
+route :: RouteDuplex' Route
+route = RD.root $ G.sum
+  { "Test": G.noArgs
+  }
 
 -- | Route to the correct handler
-router :: Request -> ResponseM
+router :: Request Route -> ResponseM
 router { body, method: Post } = toString body >>= ok
 router _ = notFound
 
 -- | Boot up the server
 main :: ServerM
 main =
-  serve 8080 router do
+  serve 8080 { route, router, notFoundHandler: Nothing } do
     log " ┌───────────────────────────────────────────┐"
     log " │ Server now up on port 8080                │"
     log " │                                           │"

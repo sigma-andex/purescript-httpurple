@@ -2,14 +2,14 @@ module HTTPure.Server
   ( ServerM
   , serve
   , serve'
-  -- , serveSecure
-  -- , serveSecure'
+  , serveSecure
+  , serveSecure'
   ) where
 
 import Prelude
 
 import Data.Maybe (Maybe(Nothing), maybe)
-import Data.Options ((:=), Options)
+import Data.Options (Options, (:=))
 import Data.Profunctor.Choice ((|||))
 import Effect (Effect)
 import Effect.Aff (catchError, message, runAff)
@@ -19,9 +19,9 @@ import HTTPure.Request (Request, fromHTTPRequest)
 import HTTPure.Response (ResponseM, internalServerError, notFound, send)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Sync (readTextFile)
-import Node.HTTP (ListenOptions, listen, close)
+import Node.HTTP (ListenOptions, close, listen)
 import Node.HTTP (Request, Response, createServer) as HTTP
-import Node.HTTP.Secure (SSLOptions, key, keyString, cert, certString)
+import Node.HTTP.Secure (SSLOptions, cert, certString, key, keyString)
 import Node.HTTP.Secure (createServer) as HTTPS
 import Routing.Duplex as RD
 
@@ -29,6 +29,12 @@ import Routing.Duplex as RD
 -- | server. This type is the return type of the HTTPure serve and related
 -- | methods.
 type ServerM = Effect (Effect Unit -> Effect Unit)
+
+type RoutingSettings route =
+  { route :: RD.RouteDuplex' route
+  , router :: Request route -> ResponseM
+  , notFoundHandler :: Maybe (Request Unit -> ResponseM)
+  }
 
 -- | Given a router, handle unhandled exceptions it raises by
 -- | responding with 500 Internal Server Error.
@@ -65,10 +71,7 @@ defaultNotFoundHandler = const notFound
 serve' ::
   forall route.
   ListenOptions ->
-  { route :: RD.RouteDuplex' route
-  , router :: Request route -> ResponseM
-  , notFoundHandler :: Maybe (Request Unit -> ResponseM)
-  } ->
+  RoutingSettings route ->
   Effect Unit ->
   ServerM
 serve' options { route, router, notFoundHandler } onStarted = do
@@ -80,18 +83,17 @@ serve' options { route, router, notFoundHandler } onStarted = do
 -- | object, a function mapping `Request` to `ResponseM`, and a `ServerM`
 -- | containing effects to run on boot, creates and runs a HTTPure server with
 -- | SSL.
--- serveSecure' ::
---   forall route.
---   Options SSLOptions ->
---   ListenOptions ->
---   RD.RouteDuplex' route ->
---   (Request route -> ResponseM) ->
---   Effect Unit ->
---   ServerM
--- serveSecure' sslOptions options route router onStarted = do
---   server <- HTTPS.createServer sslOptions (handleRequest route router)
---   listen server options onStarted
---   pure $ close server
+serveSecure' ::
+  forall route.
+  Options SSLOptions ->
+  ListenOptions ->
+  RoutingSettings route ->
+  Effect Unit ->
+  ServerM
+serveSecure' sslOptions options { route, router, notFoundHandler } onStarted = do
+  server <- HTTPS.createServer sslOptions (handleRequest { route, router, notFoundHandler: maybe defaultNotFoundHandler identity notFoundHandler })
+  listen server options onStarted
+  pure $ close server
 
 -- | Given a port number, return a `HTTP.ListenOptions` `Record`.
 listenOptions :: Int -> ListenOptions
@@ -109,10 +111,7 @@ listenOptions port =
 serve ::
   forall route.
   Int ->
-  { route :: RD.RouteDuplex' route
-  , router :: Request route -> ResponseM
-  , notFoundHandler :: Maybe (Request Unit -> ResponseM)
-  } ->
+  RoutingSettings route ->
   Effect Unit ->
   ServerM
 serve = serve' <<< listenOptions
@@ -124,17 +123,16 @@ serve = serve' <<< listenOptions
 -- | 3. A path to a private key file
 -- | 4. A handler method which maps `Request` to `ResponseM`
 -- | 5. A callback to call when the server is up
--- serveSecure ::
---   forall route.
---   Int ->
---   String ->
---   String ->
---   RD.RouteDuplex' route ->
---   (Request route -> ResponseM) ->
---   Effect Unit ->
---   ServerM
--- serveSecure port certFile keyFile route router onStarted = do
---   cert' <- readTextFile UTF8 certFile
---   key' <- readTextFile UTF8 keyFile
---   let sslOpts = key := keyString key' <> cert := certString cert'
---   serveSecure' sslOpts (listenOptions port) route router onStarted
+serveSecure ::
+  forall route.
+  Int ->
+  String ->
+  String ->
+  RoutingSettings route ->
+  Effect Unit ->
+  ServerM
+serveSecure port certFile keyFile routingSettings onStarted = do
+  cert' <- readTextFile UTF8 certFile
+  key' <- readTextFile UTF8 keyFile
+  let sslOpts = key := keyString key' <> cert := certString cert'
+  serveSecure' sslOpts (listenOptions port) routingSettings onStarted
