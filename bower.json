@@ -40,7 +40,7 @@
         "purescript-profunctor": "^v6.0.0",
         "purescript-record": "^v4.0.0",
         "purescript-refs": "^v6.0.0",
-        "purescript-routing-duplex": "https://github.com/natefaubion/purescript-routing-duplex.git#v0.6.0",
+        "purescript-routing-duplex": "^v0.6.0",
         "purescript-strings": "^v6.0.0",
         "purescript-tuples": "^v7.0.0",
         "purescript-type-equality": "^v4.0.1",
