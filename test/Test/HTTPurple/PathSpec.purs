@@ -1,9 +1,9 @@
-module Test.HTTPure.PathSpec where
+module Test.HTTPurple.PathSpec where
 
 import Prelude
 
-import HTTPure.Path (read)
-import Test.HTTPure.TestHelpers (Test, mockRequest, (?=))
+import HTTPurple.Path (read)
+import Test.HTTPurple.TestHelpers (Test, mockRequest, (?=))
 import Test.Spec (describe, it)
 
 readSpec :: Test

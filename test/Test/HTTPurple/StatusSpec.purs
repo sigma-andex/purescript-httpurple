@@ -1,10 +1,10 @@
-module Test.HTTPure.StatusSpec where
+module Test.HTTPurple.StatusSpec where
 
 import Prelude
 
 import Effect.Class (liftEffect)
-import HTTPure.Status (write)
-import Test.HTTPure.TestHelpers (Test, getResponseStatus, mockResponse, (?=))
+import HTTPurple.Status (write)
+import Test.HTTPurple.TestHelpers (Test, getResponseStatus, mockResponse, (?=))
 import Test.Spec (describe, it)
 
 writeSpec :: Test

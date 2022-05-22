@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import HTTPure (Request, ResponseM, ServerM, ok, serve)
+import HTTPurple (Request, ResponseM, ServerM, ok, serve)
 import Node.ChildProcess (defaultSpawnOptions, spawn, stdout)
 import Node.Stream (Readable)
 import Routing.Duplex as RD

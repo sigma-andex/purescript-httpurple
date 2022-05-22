@@ -1,4 +1,4 @@
-module HTTPure.Lookup
+module HTTPurple.Lookup
   ( class Lookup
   , at
   , (!@)

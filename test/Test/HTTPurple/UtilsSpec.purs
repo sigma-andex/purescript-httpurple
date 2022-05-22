@@ -1,7 +1,7 @@
-module Test.HTTPure.UtilsSpec where
+module Test.HTTPurple.UtilsSpec where
 
-import HTTPure.Utils (replacePlus)
-import Test.HTTPure.TestHelpers (Test, (?=))
+import HTTPurple.Utils (replacePlus)
+import Test.HTTPurple.TestHelpers (Test, (?=))
 import Test.Spec (describe, it)
 
 replacePlusSpec :: Test

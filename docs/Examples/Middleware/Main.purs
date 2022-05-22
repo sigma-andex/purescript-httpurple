@@ -7,7 +7,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import HTTPure (type (<+>), Request, ResponseM, ServerM, fullPath, header, ok, ok', serve, (<+>))
+import HTTPurple (type (<+>), Request, ResponseM, ServerM, fullPath, header, ok, ok', serve, (<+>))
 import Record as Record
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG

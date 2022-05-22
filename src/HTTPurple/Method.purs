@@ -1,4 +1,4 @@
-module HTTPure.Method
+module HTTPurple.Method
   ( Method(..)
   , read
   ) where
@@ -7,7 +7,7 @@ import Prelude
 
 import Node.HTTP (Request, requestMethod)
 
--- | These are the HTTP methods that HTTPure understands.
+-- | These are the HTTP methods that HTTPurple understands.
 data Method
   = Get
   | Post

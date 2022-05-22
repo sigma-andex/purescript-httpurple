@@ -1,4 +1,4 @@
-module HTTPure.Headers
+module HTTPurple.Headers
   ( Headers(..)
   , empty
   , headers
@@ -19,7 +19,7 @@ import Data.TraversableWithIndex (traverseWithIndex)
 import Data.Tuple (Tuple(Tuple))
 import Effect (Effect)
 import Foreign.Object (fold)
-import HTTPure.Lookup (class Lookup, (!!))
+import HTTPurple.Lookup (class Lookup, (!!))
 import Node.HTTP (Request, Response, requestHeaders, setHeader)
 
 -- | The `Headers` type is just sugar for a `Object` of `Strings`

@@ -1,4 +1,4 @@
-module Test.HTTPure.BodySpec where
+module Test.HTTPurple.BodySpec where
 
 import Prelude
 
@@ -6,13 +6,13 @@ import Data.Maybe (Maybe(Nothing), fromMaybe)
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Ref (new) as Ref
-import HTTPure.Body (RequestBody, defaultHeaders, read, toBuffer, toStream, toString, write)
-import HTTPure.Headers (header)
+import HTTPurple.Body (RequestBody, defaultHeaders, read, toBuffer, toStream, toString, write)
+import HTTPurple.Headers (header)
 import Node.Buffer (Buffer, fromString)
 import Node.Buffer (toString) as Buffer
 import Node.Encoding (Encoding(UTF8))
 import Node.Stream (readString)
-import Test.HTTPure.TestHelpers (Test, getResponseBody, mockRequest, mockResponse, stringToStream, (?=))
+import Test.HTTPurple.TestHelpers (Test, getResponseBody, mockRequest, mockResponse, stringToStream, (?=))
 import Test.Spec (describe, it)
 
 mockRequestBody :: String -> Aff RequestBody

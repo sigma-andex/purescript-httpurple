@@ -8,7 +8,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
-import HTTPure (Request, Response, ResponseM, ServerM, ok, serve)
+import HTTPurple (Request, Response, ResponseM, ServerM, ok, serve)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
 

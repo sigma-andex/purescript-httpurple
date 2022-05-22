@@ -1,17 +1,17 @@
-module Test.HTTPure.ResponseSpec where
+module Test.HTTPurple.ResponseSpec where
 
 import Prelude
 
 import Data.Either (Either(Right))
 import Effect.Aff (makeAff, nonCanceler)
 import Effect.Class (liftEffect)
-import HTTPure.Body (defaultHeaders)
-import HTTPure.Headers (header)
-import HTTPure.Response (emptyResponse, emptyResponse', response, response', send)
+import HTTPurple.Body (defaultHeaders)
+import HTTPurple.Headers (header)
+import HTTPurple.Response (emptyResponse, emptyResponse', response, response', send)
 import Node.Encoding (Encoding(UTF8))
 import Node.HTTP (responseAsStream)
 import Node.Stream (end, writeString)
-import Test.HTTPure.TestHelpers
+import Test.HTTPurple.TestHelpers
   ( Test
   , getResponseBody
   , getResponseHeader

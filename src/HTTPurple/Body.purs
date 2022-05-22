@@ -1,4 +1,4 @@
-module HTTPure.Body
+module HTTPurple.Body
   ( class Body
   , RequestBody
   , defaultHeaders
@@ -18,7 +18,7 @@ import Effect.Aff (Aff, makeAff, nonCanceler)
 import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
 import Effect.Ref (modify, new, read, write) as Ref
-import HTTPure.Headers (Headers, header)
+import HTTPurple.Headers (Headers, header)
 import Node.Buffer (Buffer, concat, fromString, size)
 import Node.Buffer (toString) as Buffer
 import Node.Encoding (Encoding(UTF8))
@@ -95,7 +95,7 @@ toBuffer requestBody = do
 toStream :: RequestBody -> Readable ()
 toStream = _.stream
 
--- | Types that implement the `Body` class can be used as a body to an HTTPure
+-- | Types that implement the `Body` class can be used as a body to an HTTPurple
 -- | response, and can be used with all the response helpers.
 class Body b where
   -- | Return any default headers that need to be sent with this body type,

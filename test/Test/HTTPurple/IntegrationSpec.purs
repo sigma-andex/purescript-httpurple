@@ -1,4 +1,4 @@
-module Test.HTTPure.IntegrationSpec where
+module Test.HTTPurple.IntegrationSpec where
 
 import Prelude
 
@@ -19,7 +19,7 @@ import Examples.SSL.Main as SSL
 import Foreign.Object (empty, singleton)
 import Node.Buffer (toArray)
 import Node.FS.Aff (readFile)
-import Test.HTTPure.TestHelpers
+import Test.HTTPurple.TestHelpers
   ( Test
   , get
   , get'

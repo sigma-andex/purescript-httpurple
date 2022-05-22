@@ -1,11 +1,11 @@
-module Test.HTTPure.QuerySpec where
+module Test.HTTPurple.QuerySpec where
 
 import Prelude
 
 import Data.Tuple (Tuple(Tuple))
 import Foreign.Object (empty, fromFoldable, singleton)
-import HTTPure.Query (read)
-import Test.HTTPure.TestHelpers (Test, mockRequest, (?=))
+import HTTPurple.Query (read)
+import Test.HTTPurple.TestHelpers (Test, mockRequest, (?=))
 import Test.Spec (describe, it)
 
 readSpec :: Test

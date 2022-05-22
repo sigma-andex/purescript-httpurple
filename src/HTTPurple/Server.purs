@@ -1,4 +1,4 @@
-module HTTPure.Server
+module HTTPurple.Server
   ( ServerM
   , serve
   , serve'
@@ -15,8 +15,8 @@ import Effect (Effect)
 import Effect.Aff (catchError, message, runAff)
 import Effect.Class (liftEffect)
 import Effect.Console (error)
-import HTTPure.Request (Request, fromHTTPRequest)
-import HTTPure.Response (ResponseM, internalServerError, notFound, send)
+import HTTPurple.Request (Request, fromHTTPRequest)
+import HTTPurple.Response (ResponseM, internalServerError, notFound, send)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Sync (readTextFile)
 import Node.HTTP (ListenOptions, close, listen)
@@ -26,7 +26,7 @@ import Node.HTTP.Secure (createServer) as HTTPS
 import Routing.Duplex as RD
 
 -- | The `ServerM` is just an `Effect` containing a callback to close the
--- | server. This type is the return type of the HTTPure serve and related
+-- | server. This type is the return type of the HTTPurple serve and related
 -- | methods.
 type ServerM = Effect (Effect Unit -> Effect Unit)
 
@@ -67,7 +67,7 @@ defaultNotFoundHandler = const notFound
 
 -- | Given a `ListenOptions` object, a function mapping `Request` to
 -- | `ResponseM`, and a `ServerM` containing effects to run on boot, creates and
--- | runs a HTTPure server without SSL.
+-- | runs a HTTPurple server without SSL.
 serve' ::
   forall route.
   ListenOptions ->
@@ -81,7 +81,7 @@ serve' options { route, router, notFoundHandler } onStarted = do
 
 -- | Given a `Options HTTPS.SSLOptions` object and a `HTTP.ListenOptions`
 -- | object, a function mapping `Request` to `ResponseM`, and a `ServerM`
--- | containing effects to run on boot, creates and runs a HTTPure server with
+-- | containing effects to run on boot, creates and runs a HTTPurple server with
 -- | SSL.
 serveSecure' ::
   forall route.
@@ -103,7 +103,7 @@ listenOptions port =
   , backlog: Nothing
   }
 
--- | Create and start a server. This is the main entry point for HTTPure. Takes
+-- | Create and start a server. This is the main entry point for HTTPurple. Takes
 -- | a port number on which to listen, a function mapping `Request` to
 -- | `ResponseM`, and a `ServerM` containing effects to run after the server has
 -- | booted (usually logging). Returns an `ServerM` containing the server's

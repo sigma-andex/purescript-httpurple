@@ -1,4 +1,4 @@
-module Test.HTTPure.TestHelpers where
+module Test.HTTPurple.TestHelpers where
 
 import Prelude
 

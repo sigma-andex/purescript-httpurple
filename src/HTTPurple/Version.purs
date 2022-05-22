@@ -1,4 +1,4 @@
-module HTTPure.Version
+module HTTPurple.Version
   ( Version(..)
   , read
   ) where
@@ -7,7 +7,7 @@ import Prelude
 
 import Node.HTTP (Request, httpVersion)
 
--- | These are the HTTP versions that HTTPure understands. There are five
+-- | These are the HTTP versions that HTTPurple understands. There are five
 -- | commonly known versions which are explicitly named.
 data Version
   = HTTP0_9
