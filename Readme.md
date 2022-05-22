@@ -106,6 +106,7 @@ If you have used HTTPure before, you'll probably want to go through the followin
 * [routing-duplex](#routing-duplex)
 * [startup options](#startup-options)
 * [other improvements](#other-improvmenets)
+* [hot module reloading](#hot-module-reloading)
 
 ### Routing-duplex
 
@@ -244,6 +245,42 @@ main =
 
 * Default closing handler - A default closing handler is provided so you can just stop your server using `ctrl+x` without having to worry about anything. You can deactivate it by setting `closingHandler: NoClosingHandler` in the listen options.
 
+### Hot module reloading
+
+With HTTPurple 🪁 you can easily set up a hot module reloading workflow:
+
+Create an `index.js` with the content:
+```javascript
+import * as Main from './output/Main/index.js'
+Main.main()
+```
+
+Add to `package.json`:
+```json
+  ...
+  "scripts": {
+      "hot": "spago build -w & nodemon \"node index.js\""
+    },
+  "type": "module",
+  ...
+```
+
+Spin up:
+```bash
+npm run hot
+```
+Develop:
+```bash
+HTTPurple 🪁 up and running on http://0.0.0.0:8080
+[nodemon] restarting due to changes...
+[nodemon] restarting due to changes...
+[nodemon] starting `node "node index.js" index.js`
+HTTPurple 🪁 up and running on http://0.0.0.0:8080
+[nodemon] restarting due to changes...
+[nodemon] restarting due to changes...
+[nodemon] starting `node "node index.js" index.js`
+HTTPurple 🪁 up and running on http://0.0.0.0:8080
+```
 
 ## License
 
