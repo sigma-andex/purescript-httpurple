@@ -1,80 +1,45 @@
-name: Check
+name: CI
 
 on:
-  pull_request:
   push:
-    branches:
-      - main
-      - "v[0-9]*.[0-9]*.x"
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  Test:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out codebase
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v2
 
-      - name: Install nix
-        uses: cachix/install-nix-action@v15
+      - name: Set up a PureScript toolchain
+        uses: purescript-contrib/setup-purescript@main
         with:
-          nix_path: nixpkgs=channel:nixpkgs-unstable
+          purescript: "unstable"
+          purs-tidy: "latest"
 
-      - name: Install environment
-        run: nix-shell
-
-      - name: Build
-        run: nix-shell --run "build test"
-
-      - name: Test
-        run: nix-shell --run check-code
-
-  Validate_Purescript_Format:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out codebase
-        uses: actions/checkout@v3
-
-      - name: Install nix
-        uses: cachix/install-nix-action@v15
+      - name: Cache PureScript dependencies
+        uses: actions/cache@v2
         with:
-          nix_path: nixpkgs=channel:nixpkgs-unstable
+          key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
+          path: |
+            .spago
+            output
+      - name: Install dependencies
+        run: spago install
 
-      - name: Install environment
-        run: nix-shell
+      - name: Build source
+        run: spago build --no-install --purs-args '--censor-lib --strict'
 
-      - name: Validate Format
-        run: nix-shell --run check-format-purescript
+      - name: Run tests
+        run: spago -x test.dhall test
 
-  Validate_Nix_Format:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out codebase
-        uses: actions/checkout@v3
+      - name: Check formatting
+        run: purs-tidy check src test
 
-      - name: Install nix
-        uses: cachix/install-nix-action@v15
-        with:
-          nix_path: nixpkgs=channel:nixpkgs-unstable
-
-      - name: Install environment
-        run: nix-shell
-
-      - name: Validate Format
-        run: nix-shell --run check-format-nix
-
-  Validate_Pulp:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out codebase
-        uses: actions/checkout@v3
-
-      - name: Install nix
-        uses: cachix/install-nix-action@v15
-        with:
-          nix_path: nixpkgs=channel:nixpkgs-unstable
-
-      - name: Install environment
-        run: nix-shell
-
-      - name: Verify Pulp and bower
-        run: nix-shell --run check-pulp
+      - name: Verify Bower & Pulp
+        run: |
+          npm install bower pulp@16.0.0
+          npx bower install
+          npx pulp build -- --censor-lib --strict
