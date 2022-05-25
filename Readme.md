@@ -29,17 +29,13 @@ module Main where
 import Prelude hiding ((/))
 
 import Data.Generic.Rep (class Generic)
-import HTTPurple (ServerM, ok, serve)
-import Routing.Duplex (RouteDuplex', root, segment)
-import Routing.Duplex.Generic (sum)
-import Routing.Duplex.Generic.Syntax ((/))
+import HTTPurple
 
 data Route = Hello String
-
 derive instance Generic Route _
 
 route :: RouteDuplex' Route
-route = root $ sum
+route = mkRoute
   { "Hello": "hello" / segment
   }
 
@@ -129,21 +125,16 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import HTTPurple (ServerM, found', headers, ok, serve)
-import Routing.Duplex (RouteDuplex', as, optional, print, root, segment, string)
-import Routing.Duplex.Generic as G
-import Routing.Duplex.Generic.Syntax ((/), (?))
+import HTTPurple
 
 data Route
   = Home
   | Profile String
   | Account String
   | Search { q :: String, sorting :: Maybe Sort }
-
 derive instance Generic Route _
 
 data Sort = Asc | Desc
-
 derive instance Generic Sort _
 
 sortToString :: Sort -> String
@@ -161,8 +152,8 @@ sort :: RouteDuplex' String -> RouteDuplex' Sort
 sort = as sortToString sortFromString
 
 api :: RouteDuplex' Route
-api = root $ G.sum
-  { "Home": G.noArgs
+api = root $ sum
+  { "Home": noArgs
   , "Profile": "profile" / string segment
   , "Account": "account" / string segment
   , "Search": "search" ? { q: string, sorting: optional <<< sort }
@@ -173,11 +164,12 @@ main = serve { port: 8080 } { route: api, router: apiRouter }
   where
 
   apiRouter { route: Home } = ok "hello world!"
-  apiRouter { route: (Profile profile) } = ok $ "hello " <> profile <> "!"
-  apiRouter { route: (Account account) } = found' redirect ""
+  apiRouter { route: Profile profile } = ok $ "hello " <> profile <> "!"
+  apiRouter { route: Account account } = found' redirect ""
     where
-    redirect = headers [ Tuple "Location" $ print api $ Profile account ]
-  apiRouter { route: (Search { q, sorting }) } = ok $ "searching for query " <> q <> " " <> case sorting of
+    reverseRoute = print api $ Profile account
+    redirect = headers [ Tuple "Location" reverseRoute ]
+  apiRouter { route: Search { q, sorting } } = ok $ "searching for query " <> q <> " " <> case sorting of
     Just Asc -> "ascending"
     Just Desc -> "descending"
     Nothing -> "defaulting to ascending"
