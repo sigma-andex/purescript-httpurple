@@ -28,7 +28,6 @@ module Main where
 
 import Prelude hiding ((/))
 
-import Data.Generic.Rep (class Generic)
 import HTTPurple
 
 data Route = Hello String
