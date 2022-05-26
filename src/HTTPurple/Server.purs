@@ -150,8 +150,8 @@ serve inputOptions { route, router } = do
   case filledOptions.closingHandler of
     Just NoClosingHandler -> pure closingHandler
     _ -> do
-      onSignal SIGINT $ closingHandler $ log "Received SIGINT, stopping service now."
-      onSignal SIGTERM $ closingHandler $ log "Received SIGTERM, stopping service now."
+      onSignal SIGINT $ closingHandler $ log "Ok, ok, stopping the service now. Goodbye!"
+      onSignal SIGTERM $ closingHandler $ log "Arrgghh I got stabbed in the back 🗡 ... good...bye..."
       pure closingHandler
 
 defaultHostname :: String

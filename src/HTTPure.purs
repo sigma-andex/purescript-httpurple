@@ -13,6 +13,7 @@ module HTTPurple
   , module Routing.Duplex
   , module Routing.Duplex.Generic
   , module Routing.Duplex.Generic.Syntax
+  , module Data.Generic.Rep
   ) where
 
 import HTTPurple.Body (toBuffer, toStream, toString)
@@ -29,3 +30,4 @@ import HTTPurple.Status (Status)
 import Routing.Duplex (class RouteDuplexBuildParams, class RouteDuplexParams, RouteDuplex(..), RouteDuplex', as, boolean, buildParams, default, end, flag, int, many, many1, optional, param, params, parse, path, prefix, print, prop, record, rest, root, segment, string, suffix, (:=))
 import Routing.Duplex.Generic (class GRouteDuplex, class GRouteDuplexCtr, noArgs, product, sum, (~))
 import Routing.Duplex.Generic.Syntax (gparams, gsep, (/), (?))
+import Data.Generic.Rep (class Generic)
