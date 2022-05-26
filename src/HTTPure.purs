@@ -16,6 +16,7 @@ module HTTPurple
   , module Data.Generic.Rep
   ) where
 
+import Data.Generic.Rep (class Generic)
 import HTTPurple.Body (toBuffer, toStream, toString)
 import HTTPurple.Headers (Headers, empty, header, headers)
 import HTTPurple.Lookup (at, has, lookup, (!!), (!?), (!@))
@@ -30,4 +31,3 @@ import HTTPurple.Status (Status)
 import Routing.Duplex (class RouteDuplexBuildParams, class RouteDuplexParams, RouteDuplex(..), RouteDuplex', as, boolean, buildParams, default, end, flag, int, many, many1, optional, param, params, parse, path, prefix, print, prop, record, rest, root, segment, string, suffix, (:=))
 import Routing.Duplex.Generic (class GRouteDuplex, class GRouteDuplexCtr, noArgs, product, sum, (~))
 import Routing.Duplex.Generic.Syntax (gparams, gsep, (/), (?))
-import Data.Generic.Rep (class Generic)
