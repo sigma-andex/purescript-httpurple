@@ -12,11 +12,10 @@ import Control.Monad.Cont (ContT(..))
 import Data.Either (Either, either)
 import Data.Newtype (class Newtype)
 import Data.Tuple (Tuple(..))
-import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
 import HTTPurple.Body (RequestBody, toString)
 import HTTPurple.Headers (Headers, headers)
-import HTTPurple.Response (Response, ResponseM, badRequest')
+import HTTPurple.Response (Response, badRequest')
 
 newtype JsonDecoder err json = JsonDecoder (String -> Either err json)
 
@@ -29,33 +28,34 @@ jsonHeaders :: Headers
 jsonHeaders = headers [ jsonHeader ]
 
 fromJsonContinuation ::
-  forall err json.
+  forall err json m.
+  MonadAff m =>
   JsonDecoder err json ->
-  (err -> ResponseM) ->
+  (err -> m Response) ->
   RequestBody ->
-  (json -> ResponseM) ->
-  ResponseM
+  (json -> m Response) ->
+  m Response
 fromJsonContinuation (JsonDecoder decode) errorHandler body handler = do
   bodyStr <- toString body
   let
     parseJson :: Either err json
     parseJson = decode $ bodyStr
 
-    toBadRequest err = errorHandler err
-  either toBadRequest handler parseJson
+  either errorHandler handler parseJson
 
-defaultErrorHandler :: forall (t47 :: Type) (m :: Type -> Type). MonadAff m => t47 -> m Response
+defaultErrorHandler :: forall (err :: Type) (m :: Type -> Type). MonadAff m => err -> m Response
 defaultErrorHandler = const $ badRequest' jsonHeaders ""
 
 -- | Parse the `RequestBody` as json using the provided `JsonDecoder`. 
 -- | If it fails, the error handler is called.
 -- | Returns a continuation
-fromJsonE :: forall (err :: Type) (json :: Type). JsonDecoder err json -> (err -> ResponseM) -> RequestBody -> ContT Response Aff json
+fromJsonE :: forall (err :: Type) (json :: Type) (m :: Type -> Type).
+  MonadAff m => JsonDecoder err json -> (err -> m Response) -> RequestBody -> ContT Response m json
 fromJsonE driver errorHandler body = ContT $ (fromJsonContinuation driver errorHandler body)
 
 -- | Parse the `RequestBody` as json using the provided `JsonDecoder`. 
 -- | If it fails, an empty bad request is returned
 -- | Returns a continuation
-fromJson :: forall (err :: Type) (json :: Type). JsonDecoder err json -> RequestBody -> ContT Response Aff json
+fromJson :: forall (err :: Type) (json :: Type) (m :: Type -> Type). MonadAff m => JsonDecoder err json -> RequestBody -> ContT Response m json
 fromJson driver = fromJsonE driver defaultErrorHandler
 
