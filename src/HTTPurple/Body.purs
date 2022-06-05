@@ -15,6 +15,7 @@ import Data.Either (Either(Right))
 import Data.Maybe (Maybe(Just, Nothing))
 import Effect (Effect)
 import Effect.Aff (Aff, makeAff, nonCanceler)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
 import Effect.Ref (modify, new, read, write) as Ref
@@ -48,7 +49,7 @@ read request = do
 -- |
 -- | This drains the `Readable` stream in `RequestBody` for the first time
 -- | and returns cached result from then on.
-toString :: RequestBody -> Aff String
+toString :: forall m. MonadAff m => RequestBody -> m String
 toString requestBody = do
   maybeString <-
     liftEffect
@@ -67,7 +68,7 @@ toString requestBody = do
 -- |
 -- | This drains the `Readable` stream in `RequestBody` for the first time
 -- | and returns cached result from then on.
-toBuffer :: RequestBody -> Aff Buffer
+toBuffer :: forall m. MonadAff m => RequestBody -> m Buffer
 toBuffer requestBody = do
   maybeBuffer <-
     liftEffect
@@ -81,9 +82,9 @@ toBuffer requestBody = do
     Just buffer -> pure buffer
   where
   -- | Slurp the entire `Readable` stream into a `Buffer`
-  streamToBuffer :: Readable () -> Aff Buffer
+  streamToBuffer :: MonadAff m => Readable () -> m Buffer
   streamToBuffer stream =
-    makeAff \done -> do
+    liftAff $ makeAff \done -> do
       bufs <- Ref.new []
       onData stream \buf -> void $ Ref.modify (_ <> [ buf ]) bufs
       onEnd stream do
