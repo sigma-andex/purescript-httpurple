@@ -49,8 +49,13 @@ defaultErrorHandler = const $ badRequest' jsonHeaders ""
 -- | Parse the `RequestBody` as json using the provided `JsonDecoder`. 
 -- | If it fails, the error handler is called.
 -- | Returns a continuation
-fromJsonE :: forall (err :: Type) (json :: Type) (m :: Type -> Type).
-  MonadAff m => JsonDecoder err json -> (err -> m Response) -> RequestBody -> ContT Response m json
+fromJsonE ::
+  forall (err :: Type) (json :: Type) (m :: Type -> Type).
+  MonadAff m =>
+  JsonDecoder err json ->
+  (err -> m Response) ->
+  RequestBody ->
+  ContT Response m json
 fromJsonE driver errorHandler body = ContT $ (fromJsonContinuation driver errorHandler body)
 
 -- | Parse the `RequestBody` as json using the provided `JsonDecoder`. 
