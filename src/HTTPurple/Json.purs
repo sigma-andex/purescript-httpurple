@@ -47,9 +47,15 @@ fromJsonContinuation (JsonDecoder decode) errorHandler body handler = do
 defaultErrorHandler :: forall (t47 :: Type) (m :: Type -> Type). MonadAff m => t47 -> m Response
 defaultErrorHandler = const $ badRequest' jsonHeaders ""
 
+-- | Parse the `RequestBody` as json using the provided `JsonDecoder`. 
+-- | If it fails, the error handler is called.
+-- | Returns a continuation
 fromJsonE :: forall (err :: Type) (json :: Type). JsonDecoder err json -> (err -> ResponseM) -> RequestBody -> ContT Response Aff json
 fromJsonE driver errorHandler body = ContT $ (fromJsonContinuation driver errorHandler body)
 
+-- | Parse the `RequestBody` as json using the provided `JsonDecoder`. 
+-- | If it fails, an empty bad request is returned
+-- | Returns a continuation
 fromJson :: forall (err :: Type) (json :: Type). JsonDecoder err json -> RequestBody -> ContT Response Aff json
 fromJson driver = fromJsonE driver defaultErrorHandler
 
