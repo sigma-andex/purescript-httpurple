@@ -1,16 +1,20 @@
 module HTTPurple.Json
   ( JsonDecoder(..)
+  , JsonEncoder(..)
   , fromJson
   , fromJsonE
   , jsonHeader
   , jsonHeaders
-  ) where
+  , toJson
+  )
+  where
 
 import Prelude
 
 import Control.Monad.Cont (ContT(..))
 import Data.Either (Either, either)
-import Data.Newtype (class Newtype)
+import Data.Function as Function
+import Data.Newtype (class Newtype, un)
 import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
 import HTTPurple.Body (RequestBody, toString)
@@ -20,6 +24,10 @@ import HTTPurple.Response (Response, badRequest')
 newtype JsonDecoder err json = JsonDecoder (String -> Either err json)
 
 instance Newtype (JsonDecoder err json) (String -> Either err json)
+
+newtype JsonEncoder json = JsonEncoder (json -> String)
+
+instance Newtype (JsonEncoder json) (json -> String)
 
 jsonHeader :: Tuple String String
 jsonHeader = Tuple "Content-Type" "application/json"
@@ -64,3 +72,6 @@ fromJsonE driver errorHandler body = ContT $ (fromJsonContinuation driver errorH
 fromJson :: forall (err :: Type) (json :: Type) (m :: Type -> Type). MonadAff m => JsonDecoder err json -> RequestBody -> ContT Response m json
 fromJson driver = fromJsonE driver defaultErrorHandler
 
+-- | Serialise a type to json using the given driver.
+toJson :: forall (json :: Type). JsonEncoder json -> json -> String
+toJson = un JsonEncoder >>> Function.apply
