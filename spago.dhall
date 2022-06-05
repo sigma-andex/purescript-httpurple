@@ -28,6 +28,7 @@
   , "refs"
   , "routing-duplex"
   , "strings"
+  , "transformers"
   , "tuples"
   , "type-equality"
   , "typelevel-prelude"
