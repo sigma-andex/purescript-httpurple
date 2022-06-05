@@ -6,8 +6,7 @@ module HTTPurple.Json
   , jsonHeader
   , jsonHeaders
   , toJson
-  )
-  where
+  ) where
 
 import Prelude
 
