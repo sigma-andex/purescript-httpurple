@@ -1,6 +1,8 @@
 module HTTPurple
   ( module HTTPurple.Body
+  , module HTTPurple.Cont
   , module HTTPurple.Headers
+  , module HTTPurple.Json
   , module HTTPurple.Lookup
   , module HTTPurple.Method
   , module HTTPurple.Path
@@ -18,7 +20,9 @@ module HTTPurple
 
 import Data.Generic.Rep (class Generic)
 import HTTPurple.Body (toBuffer, toStream, toString)
+import HTTPurple.Cont (usingCont)
 import HTTPurple.Headers (Headers, empty, header, headers)
+import HTTPurple.Json (JsonDecoder(..), fromJson, jsonHeader, jsonHeaders)
 import HTTPurple.Lookup (at, has, lookup, (!!), (!?), (!@))
 import HTTPurple.Method (Method(..))
 import HTTPurple.Path (Path)

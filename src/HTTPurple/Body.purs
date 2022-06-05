@@ -112,7 +112,7 @@ class Body b where
 -- | `Content-Length` header properly accounts for UTF-8 characters in the
 -- | string.  Writing is simply implemented by writing the string to the
 -- | response stream and closing the response stream.
-instance bodyString :: Body String where
+instance Body String where
   defaultHeaders body = do
     buf :: Buffer <- fromString body UTF8
     defaultHeaders buf
@@ -124,7 +124,7 @@ instance bodyString :: Body String where
 -- | The instance for `Buffer` is trivial--we add a `Content-Length` header
 -- | using `Buffer.size`, and to send the response, we just write the buffer to
 -- | the stream and end the stream.
-instance bodyBuffer :: Body Buffer where
+instance Body Buffer where
   defaultHeaders buf = header "Content-Length" <$> show <$> size buf
   write body response = makeAff \done -> do
     let stream = responseAsStream response
@@ -134,7 +134,7 @@ instance bodyBuffer :: Body Buffer where
 -- | This instance can be used to send chunked data.  Here, we add a
 -- | `Transfer-Encoding` header to indicate chunked data.  To write the data, we
 -- | simply pipe the newtype-wrapped `Stream` to the response.
-instance bodyChunked ::
+instance
   TypeEquals (Stream r) (Readable s) =>
   Body (Stream r) where
   defaultHeaders _ = pure $ header "Transfer-Encoding" "chunked"

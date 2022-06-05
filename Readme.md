@@ -100,6 +100,7 @@ HTTPurple 🪁 is a fork of [HTTPure](https://github.com/citizennet/purescript-h
 If you have used HTTPure before, you'll probably want to go through the following changes to get started using HTTPurple 🪁:
 * [routing-duplex](#routing-duplex)
 * [startup options](#startup-options)
+* [request parsing and validation](#request-parsing-and-validation)
 * [other improvements](#other-improvmenets)
 * [hot module reloading](#hot-module-reloading)
 
@@ -209,6 +210,26 @@ main =
   notFoundHandler :: Request Unit -> ResponseM
   notFoundHandler = const $ ok "Nothing to see here"
 ```
+
+### Request parsing and validation
+
+HTTPurple 🪁 makes request parsing and validation super simple. My typical http service scenario looks like this: 
+1. Parse the request json and return a bad request if the request body doesn't contain the valid json format
+2. Validate the json input semanticall and transform it into some kind of internal model. Return bad request (with some error code) in case it is invalid.
+3. Do something with the request
+4. Return the output as a json
+
+HTTPurple 🪁 uses continuations to make this standard scenario straight-forward (see example below).
+
+Furthermore, HTTPurple 🪁 doesn't mandate a json parsing library. So you can use [`argonaut`](https://github.com/purescript-contrib/purescript-argonaut) using the [`argonaut-driver`](https://github.com/sigma-andex/purescript-httpurple-argonaut), use [`yoga-json`](https://github.com/rowtype-yoga/purescript-yoga-json) using the `yoga-json-driver` (coming soon...) or write your own json driver.
+
+Here is an example how that looks like:
+```purescript
+apiRouter { route: Home, method: Post, body } = usingCont do
+    req@{ name } :: RootPostRequest <- fromJson Argonaut.jsonDecoder body
+    ok $ "hello " <> name <> "!"
+```
+In case `fromJson` succeeds, the next step will be executed, otherwise a 400 bad request is returned. 
 
 ### Other improvmenets
 
