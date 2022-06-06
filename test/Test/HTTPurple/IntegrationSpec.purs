@@ -93,7 +93,7 @@ jsonParsingSpec =
     close <- liftEffect JsonParsing.main
     response <- post 8080 empty "/" "{\"name\":\"world\"}"
     liftEffect $ close $ pure unit
-    response ?= "{\"hello\": \"world\"}"
+    response ?= "{\"hello\": \"world\" }"
 
 middlewareSpec :: Test
 middlewareSpec =
