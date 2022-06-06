@@ -26,6 +26,9 @@ route = RD.root $ RG.sum
 type HelloWorldRequest = { name :: String }
 type HelloWorldResponse = { hello :: String }
 
+
+-- the following test decoder/encoder code is just for testing. in your project you will want to use
+-- jsonEncoder and jsonDecoder from httpurple-argonaut or httpurple-yoga-json
 foreign import data Json :: Type
 
 foreign import parseJson :: String -> Maybe Json
@@ -47,9 +50,10 @@ main =
   serve { port: 8080, onStarted } { route, router }
   where
   router { route: SayHello, method: Post, body } = usingCont do
-    -- in your project you will want to use the httpurple-argonaut or httpurple-yoga-json decoder and encoder
+    -- in your project you will want to use Argonaut.jsonDecoder from httpurple-argonaut
+    -- or Yoga.jsonDecoder from httpurple-yoga-json here instead of the testDecoder
     { name } :: HelloWorldRequest <- fromJson testDecoder body
-    ok' Json.jsonHeaders $ toJson testEncoder $ { hello: name }
+    ok' Json.jsonHeaders $ toJson testEncoder $ { hello: name } -- same here for the encoder
   router { route: SayHello } = notFound
 
   onStarted = do
