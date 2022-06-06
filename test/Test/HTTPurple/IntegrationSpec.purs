@@ -10,6 +10,7 @@ import Examples.Chunked.Main as Chunked
 import Examples.CustomStack.Main as CustomStack
 import Examples.Headers.Main as Headers
 import Examples.HelloWorld.Main as HelloWorld
+import Examples.JsonParsing.Main as JsonParsing
 import Examples.Middleware.Main as Middleware
 import Examples.MultiRoute.Main as MultiRoute
 import Examples.PathSegments.Main as PathSegments
@@ -19,16 +20,7 @@ import Examples.SSL.Main as SSL
 import Foreign.Object (empty, singleton)
 import Node.Buffer (toArray)
 import Node.FS.Aff (readFile)
-import Test.HTTPurple.TestHelpers
-  ( Test
-  , get
-  , get'
-  , getBinary
-  , getHeader
-  , post
-  , postBinary
-  , (?=)
-  )
+import Test.HTTPurple.TestHelpers (Test, get, get', getBinary, getHeader, post, postBinary, (?=))
 import Test.Spec (describe, it)
 
 asyncResponseSpec :: Test
@@ -94,6 +86,14 @@ helloWorldSpec =
     response <- get 8080 empty "/"
     liftEffect $ close $ pure unit
     response ?= "hello world!"
+
+jsonParsingSpec :: Test
+jsonParsingSpec =
+  it "runs the hello world example" do
+    close <- liftEffect JsonParsing.main
+    response <- post 8080 empty "/" "{\"name\":\"world\"}"
+    liftEffect $ close $ pure unit
+    response ?= "{\"hello\": \"world\"}"
 
 middlewareSpec :: Test
 middlewareSpec =
@@ -175,3 +175,4 @@ integrationSpec =
     postSpec
     queryParametersSpec
     sslSpec
+    jsonParsingSpec
