@@ -26,7 +26,6 @@ route = RD.root $ RG.sum
 type HelloWorldRequest = { name :: String }
 type HelloWorldResponse = { hello :: String }
 
-
 -- the following test decoder/encoder code is just for testing. in your project you will want to use
 -- jsonEncoder and jsonDecoder from httpurple-argonaut or httpurple-yoga-json
 foreign import data Json :: Type
