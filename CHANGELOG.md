@@ -3,6 +3,7 @@
 ## Unpublished
 
 - Add json request parsing simplifications
+- Add request validation
 
 ## v1.1.0
 

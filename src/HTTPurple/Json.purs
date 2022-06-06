@@ -18,7 +18,7 @@ import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
 import HTTPurple.Body (RequestBody, toString)
 import HTTPurple.Headers (Headers, headers)
-import HTTPurple.Response (Response, badRequest')
+import HTTPurple.Response (Response, badRequest)
 
 newtype JsonDecoder err json = JsonDecoder (String -> Either err json)
 
@@ -51,7 +51,7 @@ fromJsonContinuation (JsonDecoder decode) errorHandler body handler = do
   either errorHandler handler parseJson
 
 defaultErrorHandler :: forall (err :: Type) (m :: Type -> Type). MonadAff m => err -> m Response
-defaultErrorHandler = const $ badRequest' jsonHeaders ""
+defaultErrorHandler = const $ badRequest ""
 
 -- | Parse the `RequestBody` as json using the provided `JsonDecoder`. 
 -- | If it fails, the error handler is called.

@@ -1,21 +1,54 @@
-# Routing in HTTPure
+# Routing in HTTPurple 🪁
 
-Routing in HTTPure is designed on the simple principle of allowing PureScript to
-do what PureScript does best. When you create an HTTPure server, you pass it a
-router function:
+## Table of contents
+* [Routing introduction](#introduction)
+* [The request record](#the-request-record)
+* [Matching HTTP methods](#matching-http-methods)
+* [Matching paths and query parameters](#matching-paths-and-query-parameters)
+  * [Adding further types](#adding-further-types)
+  * [Composing routes](#composing-routes)
+  * [Reverse routing](#reverse-routing)
+* [Working with request headers](#working-with-request-headers)
 
+## Routing introduction
+
+HTTPurple 🪁 uses [`routing-duplex`](https://github.com/natefaubion/purescript-routing-duplex) for routing.
+
+You'll need two things:
+1. A data type representing your routes
+2. A mapping between the data constructors of your data type and the paths
+
+Here an example:
 ```purescript
-main = HTTPure.serve 8080 router $ Console.log "Server up"
+import HTTPurple
+
+-- We define a data type representing our route
+-- In this case, a single route `SayHello` that accepts one parameter
+data Route = SayHello String
+derive instance Generic Route _ -- a generic instance is needed
+
+-- The mapping between our data constructor `SayHello` and 
+-- the route /hello/<argument>
+route :: RouteDuplex' Route
+route = mkRoute
+  { "SayHello": "hello" / string segment
+  }
+
+-- We then start the http server passing the route and a handler function (router)
+main :: ServerM
+main = serve {} { route, router }
+  where
+  router { route: SayHello name } = ok $ "hello " <> name <> "!"
 ```
 
 The router function is called for each inbound request to the HTTPure server.
 Its signature is:
 
 ```purescript
-HTTPure.Request -> HTTPure.ResponseM
+forall route. HTTPurple.Request route -> HTTPurple.ResponseM
 ```
 
-So in HTTPure, routing is handled simply by the router being a pure function
+So in HTTPurple, routing is handled simply by the router being a pure function
 which is passed a value that contains all information about the current request,
 and which returns a response monad. There's no fancy path parsing and matching
 algorithm to learn, and everything is pure--you don't get anything or set
@@ -34,18 +67,12 @@ guide](./Responses.md).
 
 ## The Request Record
 
-The `HTTPure.Request` type is the input parameter for the router function. It is
+The `HTTPurple.Request route` type is the input parameter for the router function. It is
 a `Record` type that contains the following fields:
 
-- `method` - A member of `HTTPure.Method`.
-- `path` - An `Array` of `String` path segments. A path segment is a nonempty
-  string separated by a `"/"`. Empty segments are stripped out when HTTPure
-  creates the `HTTPure.Request` record.
-- `query` - An `Object` of `String` values. Note that if you have any query
-  parameters without values (for instance, a URL like `/foo?bar`), then the
-  value in the `Object` for that query parameter will be the empty `String`
-  (`""`).
-- `headers` - A `HTTPure.Headers` object. The `HTTPure.Headers` newtype wraps
+- `method` - A member of `HTTPurple.Method`.
+- `route` - A data type representing your route with paths and query parameters.
+- `headers` - A `HTTPurple.Headers` object. The `HTTPurple.Headers` newtype wraps
   the `Object String` type and provides some typeclass instances that make more
   sense when working with HTTP headers.
 - `body` - A `String` containing the contents of the request body, or an empty
@@ -55,111 +82,183 @@ Following are some more details on working with specific fields, but remember,
 you can combine guards and pattern matching for any or all of these fields
 however it makes sense for your use case.
 
-## The Lookup Typeclass
+## Matching paths and query parameters
 
-You will find that much of HTTPure routing takes advantage of implementations of
-the [HTTPure.Lookup](../src/HTTPure/Lookup.purs) typeclass. This typeclass
-defines the function `HTTPure.lookup` (or the infix version `!!`), along with a
-few auxiliary helpers, for looking up a field out of an object with some key.
-There are three instances defined in HTTPure:
+Let's have a look at a bit more complex routing scenario. 
+Imagine we are developing the backend service for a simple web shop.We want two define three routes:
+- `/` which returns the data of the start page
+- `/categories/<category>/products/<product>` which takes two path parameters category name and product name and returns a certain product
+- `/search?q=<query>&sorting=<asc|desc>` which takes two query parameters, a search string and an optional sorting argument
 
-1. `Lookup (Array t) Int t` - In this instance, `HTTPure.lookup` is the same as
-   `Array.index`. Because the path is represented as an `Array` of `Strings`,
-   this can be used to retrieve the nth path segment by doing something like
-   `request.path !! n`.
-2. `Lookup (Object t) String t` - In this instance, `HTTPure.lookup` is a
-   flipped version of `Object.lookup`. Because the query is a `Object String`,
-   this instance can be used to retrieve the value of a query parameter by name,
-   by doing something like `request.query !! "someparam"`.
-3. `Lookup Headers String String` - This is similar to the example in #2, except
-   that it works with the `HTTPure.Headers` newtype, and the key is
-   case-insensitive (so `request.headers !! "X-Test" == request.headers !!
-   "x-test"`).
+```purescript
+-- We define three data types representing the three routes
+data Route
+  = Home
+  | Products String String -- the product route with two path parameters
+  | Search { q :: String, sorting :: Maybe String } -- the search route with two query parameters, whereby sorting is optional
+derive instance Generic Route _
 
-There are three infix operators defined on the `HTTPure.Lookup` typeclass that
-are extremely useful for routing:
 
-1. `!!` - This is an alias to `HTTPure.lookup` itself, and returns a `Maybe`
-   containing some type.
-2. `!@` - This is the same as `HTTPure.lookup`, but it returns the actual value
-   instead of a `Maybe` containing the value. It only operates on instances of
-   `HTTPure.Lookup` where the return type is a `Monoid`, and returns `mempty` if
-   `HTTPure.lookup` returns `Nothing`. It's especially useful when routing based
-   on specific values in query parameters, path segments, or header fields.
-3. `!?` - This returns `true` if the key on the right hand side is in the data
-   set on the left hand side. In other words, if `HTTPure.lookup` matches
-   something, this is `true`, otherwise, this is `false`.
+-- Next we define the route (mapping)
+route :: RouteDuplex' Route
+route = mkRoute
+  { "Home": noArgs -- the root route /
+  , "Products": "categories" / string segment / "products" / string segment
+  , "Search": "search" ? { q: string, sorting: optional <<< string }
+  }
+
+-- Finally, we pass the route (mapping) to the server and also define a route handler
+main :: ServerM
+main = serve { port: 8080 } { route: route, router }
+  where
+  router { route: Home } = ok "home"
+  router { route: Products category product } = do
+    ok $ "category=" <> category <> ", product=" <> product
+  router { route: Search { q, sorting } } = ok $ "searching=" <> q <> "," <> case sorting of
+    Just "asc" -> "ascending"
+    _ -> "descending"
+```
+
+As you can see, in the route handler you can directly pattern match your data type. Pattern matching of the route is exhaustive so that you will get an error if you miss a route.
+
+### Adding further types
+
+We can add further type information to our route data type.
+Instead of treating the path arguments of our product route as `String`, we can define newtypes for the arguments:
+```purescript
+newtype Category = Category String
+instance Newtype Category String
+
+newtype Product = Product String
+instance Newtype Product String
+```
+
+We'll change our data constructor to accept the two newtypes:
+```purescript
+  | Products Category Product
+```
+
+We can then define new segment types to match the different arguments:
+
+```purescript
+category :: RouteDuplex' Category
+category = _Newtype R.segment
+
+product :: RouteDuplex' Product
+product = _Newtype segment
+```
+
+Now we can update our route mapping:
+```purescript
+"Products": "categories" / category / "products" / product
+```
+
+We can furthe add a more expressive type for our sorting query parameter
+
+```purescript
+data Sort = Asc | Desc
+derive instance Generic Sort _
+```
+
+We can then define the conversion to and from string and define a new `RouteDuplex`:
+```purescript
+sortToString :: Sort -> String
+sortToString = case _ of
+  Asc -> "asc"
+  Desc -> "desc"
+
+sortFromString :: String -> Either String Sort
+sortFromString = case _ of
+  "asc" -> Right Asc
+  "desc" -> Right Desc
+  val -> Left $ "Not a sort: " <> val
+
+sort :: RouteDuplex' String -> RouteDuplex' Sort
+sort = as sortToString sortFromString
+```
+
+We can then update our `Route` data type to use the new `Sort` data type
+```purescript
+  | Search { q :: String, sorting :: Maybe Sort }
+```
+and use the new `sort` function in our route mapping: 
+```purescript
+"Search": "search" ? { q: string, sorting: optional <<< sort }
+```
+
+As you can see, the `RoutingDuplex` approach is quite powerful and once you got a grip on it, it is also rather straight-forward to use.
+I recommend you to also check out the [`routing-duplex`  documentation](https://github.com/natefaubion/purescript-routing-duplex) which contains many more examples.
+
+### Composing routes
+
+Sometimes you might want to define two route data types to structure your routing logically. Composing routes is straight-forward with HTTPurple. 
+E.g. you could have an `ApiRoute` representing your business api and a `MetaRoute` for technical routes, such as a health check:
+
+```purescript
+data ApiRoute
+  = Home
+derive instance Generic Route _
+api :: RouteDuplex' ApiRoute
+api = mkRoute
+  { "Home": G.noArgs }
+
+data MetaRoute = Health
+
+derive instance Generic MetaRoute _
+
+meta :: RouteDuplex' MetaRoute
+meta = mkRoute { "Health": "health" / G.noArgs }
+```
+
+You can compose these two routes using the `<+>` operator, and compose the routing handlers with `orElse`:
+
+```purescript
+main :: ServerM
+main = serve { port: 8080, notFoundHandler } { route: api <+> meta, router: apiRouter `orElse` metaRouter }
+  where
+
+  apiRouter { route: Home } = ok "hello world!"
+  metaRouter { route: Health } = ok """{"status":"ok"}"""
+  ```
+
+### Reverse routing
+
+Reverse routing, e.g. for redirects or HATEOAS, is straight-forward using the `print` function from `routing-duplex`:
+
+```purescript
+data Route
+  = Old
+  | New
+
+route :: RouteDuplex' Route
+route = mkRoute
+  { "Old": "old" / RG.noArgs
+  , "New": "new" / RG.noArgs
+  }
+
+main :: ServerM
+main = serve { port: 8080 } { route, router }
+  where
+  router { route: Old } = found' redirect ""
+    where
+    redirect = headers [ Tuple "Location" $ print route $ New account ]
+```
+
 
 ## Matching HTTP Methods
 
 You can use normal pattern matching to route based on the HTTP method:
 
 ```purescript
-router { method: HTTPure.Post } = HTTPure.ok "received a post"
-router { method: HTTPure.Get } = HTTPure.ok "received a get"
-router { method } = HTTPure.ok $ "received a " <> show method
+router { method: HTTPurple.Post } = HTTPurple.ok "received a post"
+router { method: HTTPurple.Get } = HTTPurple.ok "received a get"
+router { method } = HTTPurple.ok $ "received a " <> show method
 ```
 
 To see the list of methods that HTTPure understands, see the
 [Method](../src/HTTPure/Method.purs) module. To see an example server that
 routes based on the HTTP method, see [the Post
 example](./Examples/Post/Main.purs).
-
-## Working With Path Segments
-
-Generally, there are two use cases for working with path segments: routing on
-them, and using them as variables. When routing on path segments, you can route
-on exact path matches:
-
-```purescript
-router { path: [ "exact" ] } = HTTPure.ok "matched /exact"
-```
-
-You can also route on partial path matches. It's cleanest to use PureScript
-guards for this. For instance:
-
-```purescript
-router { path }
-  | path !@ 0 == "foo" = HTTPure.ok "matched something starting with /foo"
-  | path !@ 1 == "bar" = HTTPure.ok "matched something starting with /*/bar"
-```
-
-When using a path segment as a variable, simply extract the path segment using
-the `HTTPure.Lookup` typeclass:
-
-```purescript
-router { path } = HTTPure.ok $ "Path segment 0: " <> path !@ 0
-```
-
-To see an example server that works with path segments, see [the Path Segments
-example](./Examples/PathSegments/Main.purs).
-
-## Working With Query Parameters
-
-Working with query parameters is very similar to working with path segments. You
-can route based on the _existence_ of a query parameter:
-
-```purescript
-router { query }
-  | query !? "foo" = HTTPure.ok "matched a request containing the 'foo' param"
-```
-
-Or you can route based on the _value_ of a query parameter:
-
-```purescript
-router { query }
-  | query !@ "foo" == "bar" = HTTPure.ok "matched a request with 'foo=bar'"
-```
-
-You can of course also use the value of a query parameter to calculate your
-response:
-
-```purescript
-router { query } = HTTPure.ok $ "The value of 'foo' is " <> query !@ "foo"
-```
-
-To see an example server that works with query parameters, see [the Query
-Parameters example](./Examples/QueryParameters/Main.purs).
 
 ## Working With Request Headers
 
@@ -168,12 +267,12 @@ parameters:
 
 ```purescript
 router { headers }
-  | headers !? "X-Foo" = HTTPure.ok "There is an 'X-Foo' header"
-  | headers !@ "X-Foo" == "bar" = HTTPure.ok "The header 'X-Foo' is 'bar'"
-  | otherwise = HTTPure.ok $ "The value of 'X-Foo' is " <> headers !@ "x-foo"
+  | headers !? "X-Foo" = HTTPurple.ok "There is an 'X-Foo' header"
+  | headers !@ "X-Foo" == "bar" = HTTPurple.ok "The header 'X-Foo' is 'bar'"
+  | otherwise = HTTPurple.ok $ "The value of 'X-Foo' is " <> headers !@ "x-foo"
 ```
 
-Note that using the `HTTPure.Lookup` typeclass on headers is case-insensitive.
+Note that using the `HTTPurple.Lookup` typeclass on headers is case-insensitive.
 
 To see an example server that works with headers, see [the Headers
 example](./Examples/Headers/Main.purs).

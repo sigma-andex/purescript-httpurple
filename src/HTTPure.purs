@@ -12,6 +12,7 @@ module HTTPurple
   , module HTTPurple.Response
   , module HTTPurple.Server
   , module HTTPurple.Status
+  , module HTTPurple.Validation
   , module Routing.Duplex
   , module Routing.Duplex.Generic
   , module Routing.Duplex.Generic.Syntax
@@ -32,6 +33,7 @@ import HTTPurple.Response (Response, ResponseM, accepted, accepted', alreadyRepo
 import HTTPurple.Routes (type (<+>), combineRoutes, mkRoute, orElse, (<+>))
 import HTTPurple.Server (ServerM, serve)
 import HTTPurple.Status (Status)
+import HTTPurple.Validation (fromValidated, fromValidatedE)
 import Routing.Duplex (class RouteDuplexBuildParams, class RouteDuplexParams, RouteDuplex(..), RouteDuplex', as, boolean, buildParams, default, end, flag, int, many, many1, optional, param, params, parse, path, prefix, print, prop, record, rest, root, segment, string, suffix, (:=))
 import Routing.Duplex.Generic (class GRouteDuplex, class GRouteDuplexCtr, noArgs, product, sum, (~))
 import Routing.Duplex.Generic.Syntax (gparams, gsep, (/), (?))
