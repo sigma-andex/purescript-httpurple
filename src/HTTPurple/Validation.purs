@@ -1,8 +1,7 @@
 module HTTPurple.Validation
   ( fromValidated
   , fromValidatedE
-  )
-  where
+  ) where
 
 import Prelude
 
