@@ -221,12 +221,12 @@ HTTPurple 🪁 makes request parsing and validation super simple. My typical htt
 
 HTTPurple 🪁 uses continuations to make this standard scenario straight-forward (see example below).
 
-Furthermore, HTTPurple 🪁 doesn't mandate a json parsing library. So you can use [`argonaut`](https://github.com/purescript-contrib/purescript-argonaut) using the [`argonaut-driver`](https://github.com/sigma-andex/purescript-httpurple-argonaut), use [`yoga-json`](https://github.com/rowtype-yoga/purescript-yoga-json) using the `yoga-json-driver` (coming soon...) or write your own json driver.
+Furthermore, HTTPurple 🪁 doesn't mandate a json parsing library. So you can use [`argonaut`](https://github.com/purescript-contrib/purescript-argonaut) using the [`argonaut-driver`](https://github.com/sigma-andex/purescript-httpurple-argonaut), use [`yoga-json`](https://github.com/rowtype-yoga/purescript-yoga-json) using the [`yoga-json-driver`](https://github.com/sigma-andex/purescript-httpurple-yoga-json) or write your own json driver.
 
 Here is an example how that looks like:
 ```purescript
 apiRouter { route: Home, method: Post, body } = usingCont do
-    req@{ name } :: RootPostRequest <- fromJson Argonaut.jsonDecoder body
+    req@{ name } :: HelloWorldRequest <- fromJson Argonaut.jsonDecoder body
     ok $ "hello " <> name <> "!"
 ```
 In case `fromJson` succeeds, the next step will be executed, otherwise a 400 bad request is returned. 
