@@ -42,6 +42,7 @@
         "purescript-refs": "^v6.0.0",
         "purescript-routing-duplex": "^v0.6.0",
         "purescript-strings": "^v6.0.0",
+        "purescript-transformers": "^v6.0.0",
         "purescript-tuples": "^v7.0.0",
         "purescript-type-equality": "^v4.0.1",
         "purescript-typelevel-prelude": "^v7.0.0"
