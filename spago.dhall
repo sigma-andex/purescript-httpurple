@@ -7,8 +7,10 @@
   , "control"
   , "effect"
   , "either"
+  , "exceptions"
   , "foldable-traversable"
   , "foreign-object"
+  , "functions"
   , "js-uri"
   , "justifill"
   , "maybe"
@@ -19,6 +21,7 @@
   , "node-net"
   , "node-process"
   , "node-streams"
+  , "nullable"
   , "options"
   , "ordered-collections"
   , "posix-types"
@@ -32,6 +35,7 @@
   , "tuples"
   , "type-equality"
   , "typelevel-prelude"
+  , "unfoldable"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

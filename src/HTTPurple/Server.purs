@@ -2,6 +2,7 @@ module HTTPurple.Server
   ( ClosingHandler(..)
   , ListenOptions
   , ListenOptionsR
+  , NodeMiddleware(..)
   , RoutingSettings
   , RoutingSettingsR
   , ServerM
@@ -10,15 +11,21 @@ module HTTPurple.Server
 
 import Prelude
 
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Function.Uncurried (Fn3, runFn3)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Newtype (class Newtype, un)
+import Data.Nullable (Nullable)
 import Data.Options ((:=))
 import Data.Posix.Signal (Signal(..))
 import Data.Profunctor.Choice ((|||))
+import Data.Traversable (for, for_)
+import Data.Unfoldable as Unfoldable
 import Effect (Effect)
 import Effect.Aff (catchError, message, runAff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Effect.Console (error)
+import Effect.Exception (Error)
 import HTTPurple.Request (Request, fromHTTPRequest)
 import HTTPurple.Response (ResponseM, internalServerError, notFound, send)
 import Justifill (justifill)
@@ -42,12 +49,17 @@ type ServerM = Effect (Effect Unit -> Effect Unit)
 
 data ClosingHandler = DefaultClosingHandler | NoClosingHandler
 
+newtype NodeMiddleware = NodeMiddleware (Fn3 HTTP.Request HTTP.Response (Nullable Error -> Unit) Unit)
+
+derive instance Newtype NodeMiddleware _
+
 type ListenOptionsR =
   ( hostname :: Maybe String
   , port :: Maybe Int
   , backlog :: Maybe Int
   , closingHandler :: Maybe ClosingHandler
   , notFoundHandler :: Maybe (Request Unit -> ResponseM)
+  , nodeMiddleware :: Maybe (Array (Effect NodeMiddleware))
   , onStarted :: Maybe (Effect Unit)
   , certFile :: Maybe String
   , keyFile :: Maybe String
@@ -76,6 +88,7 @@ onError500 router request =
 -- | `Response` to the HTTP `Response`.
 handleRequest ::
   forall route.
+  Maybe (Array (Effect NodeMiddleware)) ->
   { route :: RD.RouteDuplex' route
   , router :: Request route -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
@@ -83,7 +96,11 @@ handleRequest ::
   HTTP.Request ->
   HTTP.Response ->
   Effect Unit
-handleRequest { route, router, notFoundHandler } request httpresponse =
+handleRequest maybeMiddlewares { route, router, notFoundHandler } request httpresponse = do
+  let middlewares = maybeMiddlewares # Unfoldable.fromMaybe # join
+  for_ middlewares \middlewareEffect -> do
+    (NodeMiddleware middleware) <- middlewareEffect
+    pure $ runFn3 middleware request httpresponse (const unit)
   void $ runAff (\_ -> pure unit) $ fromHTTPRequest route request
     >>= (notFoundHandler ||| onError500 router)
     >>= send httpresponse
@@ -143,8 +160,8 @@ serve inputOptions { route, router } = do
         cert' <- readTextFile UTF8 certFile
         key' <- readTextFile UTF8 keyFile
         let sslOpts = key := keyString key' <> cert := certString cert'
-        HTTPS.createServer sslOpts (handleRequest routingSettings)
-    Nothing -> HTTP.createServer (handleRequest routingSettings)
+        HTTPS.createServer sslOpts (handleRequest Nothing routingSettings)
+    Nothing -> HTTP.createServer (handleRequest filledOptions.nodeMiddleware routingSettings)
   listen server options onStarted
   let closingHandler = close server
   case filledOptions.closingHandler of
