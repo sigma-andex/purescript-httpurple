@@ -1,6 +1,7 @@
 # HTTPurple 🪁
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/sigma-andex/purescript-httpurple/main/License)
+[![purescript-httpurple on Pursuit](https://pursuit.purescript.org/packages/purescript-httpurple/badge)](https://pursuit.purescript.org/packages/purescript-httpurple)
 
 A functional http framework with a focus on type-safety and simplicity. 
 
