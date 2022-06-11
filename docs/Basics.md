@@ -1,16 +1,22 @@
-# HTTPure Basics
+# HTTPurple Basics
 
-This guide is a brief overview of the basics of creating a HTTPure server.
+This guide is a brief overview of the basics of creating a HTTPurple server.
+
+## TOC
+
+1. [Creating a Server](#creating-a-server)
+1. [Hot module reloading](#hot-module-reloading)
+1. [Further server settings](#further-server-settings)
 
 ## Creating a Server
 
-To create a server, use `HTTPure.serve` (no SSL) or `HTTPure.serveSecure` (SSL).
+To create a server, use `HTTPurple.serve`.
 Both of these functions take a port number, a router function, and an `Effect`
 that will run once the server has booted. The signature of the router function
 is:
 
 ```purescript
-HTTPure.Request -> HTTPure.ResponseM
+HTTPurple.Request route -> HTTPurple.ResponseM
 ```
 
 For more details on routing, see the [Routing guide](./Routing.md). For more
@@ -18,63 +24,113 @@ details on responses, see the [Responses guide](./Responses.md). The router can
 be composed with middleware; for more details, see the [Middleware
 guide](./Middleware.md).
 
-## Non-SSL
-
-You can create an HTTPure server without SSL using `HTTPure.serve`:
+You can create an HTTPurple server using `HTTPurple.serve`:
 
 ```purescript
-main :: HTTPure.ServerM
-main = HTTPure.serve 8080 router $ log "Server up"
-```
+import Prelude hiding ((/))
 
-Most of the [examples](./Examples), besides [the SSL Example](./Examples/SSL),
-use this method to create the server.
+import HTTPurple
 
-You can also create a server using a custom
-[`HTTP.ListenOptions`](http://bit.ly/2G42rLd) value:
+data Route = Hello String
+derive instance Generic Route _
 
-```purescript
-main :: HTTPure.ServerM
-main = HTTPure.serve' customOptions router $ log "Server up"
-```
-
-## SSL
-
-You can create an SSL-enabled HTTPure server using `HTTPure.serveSecure`, which
-has the same signature as `HTTPure.serve` except that it additionally takes a
-path to a cert file and a path to a key file after the port number:
-
-```purescript
-main :: HTTPure.ServerM
+route :: RouteDuplex' Route
+route = mkRoute
+  { "Hello": "hello" / segment
+  }
+  
+main :: ServerM
 main =
-  HTTPure.serveSecure 8080 "./Certificate.cer" "./Key.key" router $
-    log "Server up"
+  serve { port: 8080 } { route, router }
+  where
+  router { route: Hello name } = ok $ "hello " <> name
+```
+
+`HTTPurple.serve` takes as arguments two records:
+1. Server configuration - A record containing all additional settings that you want to pass. See [further server settings](#further-server-settings) for a list of all settings.
+1. A record containing your route and a router for these routes. See the [routing guide](./Routing.md) for more information.
+
+
+## Hot module reloading
+
+With HTTPurple 🪁 you can easily set up a hot module reloading workflow:
+
+Create an `index.js` with the content:
+```javascript
+import * as Main from './output/Main/index.js'
+Main.main()
+```
+
+Add to `package.json`:
+```json
+  ...
+  "scripts": {
+      "hot": "spago build -w & nodemon \"node index.js\""
+    },
+  "type": "module",
+  ...
+```
+
+Spin up:
+```bash
+npm run hot
+```
+Develop:
+```bash
+HTTPurple 🪁 up and running on http://0.0.0.0:8080
+[nodemon] restarting due to changes...
+[nodemon] restarting due to changes...
+[nodemon] starting `node "node index.js" index.js`
+HTTPurple 🪁 up and running on http://0.0.0.0:8080
+[nodemon] restarting due to changes...
+[nodemon] restarting due to changes...
+[nodemon] starting `node "node index.js" index.js`
+HTTPurple 🪁 up and running on http://0.0.0.0:8080
+```
+
+## Further server settings  
+
+HTTPurple 🪁 defines a series of settings that you can override.
+
+Here is an example of the full list of server settings:
+
+```
+{
+    hostname: "localhost"
+  , port: 9000
+  , certFile: "./Certificate.cer"
+  , keyFile: "./Key.key"
+  , notFoundHandler: custom404Handler
+  , onStarted: log "Server started 🚀"
+  , closingHandler: NoClosingHandler
+  }
+```
+
+### SSL
+
+**Note**: SSL is usually something that you want to handle at the infrastructure level and not within the application's http server. The SSL support is mainly here because HTTPure had it, but I might remove it in the near future if it hinders development.
+
+You can create an SSL-enabled HTTPurple server using `HTTPurple.serve` by passing a certFile, a keyFile and an optionally a different port:
+```purescript
+main :: HTTPurple.ServerM
+main =
+  HTTPurple.serve { port: 443, certFile : "./Certificate.cer", keyFile:  "./Key.key" } { route, router }
+  ...
 ```
 
 You can look at [the SSL Example](./Examples/SSL/Main.purs), which uses this
 method to create the server.
 
-You can also create a server using a
-[`HTTP.ListenOptions`](http://bit.ly/2G42rLd) and a
-[`HTTPS.SSLOptions`](http://bit.ly/2G3Aljr):
 
+### Closing handler
+
+HTTPurple 🪁 comes with a default closing handler, so `Ctrl+x` just stops the server. 
+you can switch off this behaviour by passing 
 ```purescript
-main :: HTTPure.ServerM
-main =
-  HTTPure.serveSecure' customSSLOptions customOptions router $
-    log "Server up"
+{ closingHandler: NoClosingHandler }
 ```
+to `serve` and define your own closing handler:
 
-## Shutdown hook
-
-To gracefully shut down a server you can add a shutdown hook. For this you will need to add the following dependencies:
-
-```
-posix-types
-node-process
-``` 
-
-Then take the closing handler returned by `serve` and create a `SIGINT` and `SIGTERM` hook:
 
 ```purescript
 import Prelude
@@ -82,14 +138,11 @@ import Prelude
 import Data.Posix.Signal (Signal(SIGINT, SIGTERM))
 import Effect (Effect)
 import Effect.Console (log)
-import HTTPure (serve, ok)
+import HTTPurple (serve, ok)
 import Node.Process (onSignal)
 
 main :: Effect Unit
 main = do 
-  closingHandler <- serve 8080 (const $ ok "hello world!") do
-    log $ "Server now up on port 8080"
-
-  onSignal SIGINT $ closingHandler $ log "Received SIGINT, stopping service now."
-  onSignal SIGTERM $ closingHandler $ log "Received SIGTERM, stopping service now."
+  closingHandler <- serve 8080 { route, router }
+  -- do something with closingHandler
 ```
