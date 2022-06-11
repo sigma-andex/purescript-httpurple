@@ -70,7 +70,13 @@ hello 🗺
 
 ## Documentation
 
-See the [docs folder](./docs) for more in-depth guides.
+See the [docs folder](./docs) for the in-depth guides. 
+
+* [Basics](./docs/Basics.md) - Basic introduction to HTTPurple 🪁
+* [Routing](./docs/Routing.md) - Explanation of the routing dsl
+* [Requests](./docs/Requests.md) - Guide to request handling
+* [Response](./docs/Responses.md) - Guide to response handling
+* [Differences](./docs/Differences.md) - A detailed description of the differences to HTTPure
 
 ## Examples
 
