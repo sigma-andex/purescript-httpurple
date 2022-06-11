@@ -7,7 +7,6 @@ If you have used HTTPure before, you'll probably want to go through the followin
 * [startup options](#startup-options)
 * [request parsing and validation](#request-parsing-and-validation)
 * [other improvements](#other-improvmenets)
-* [hot module reloading](#hot-module-reloading)
 
 ## Routing-duplex
 
@@ -118,61 +117,8 @@ main =
 
 ## Request parsing and validation
 
-HTTPurple 🪁 makes request parsing and validation super simple. My typical http service scenario looks like this: 
-1. Parse the request json and return a bad request if the request body doesn't contain the valid json format
-2. Validate the json input semanticall and transform it into some kind of internal model. Return bad request (with some error code) in case it is invalid.
-3. Do something with the request
-4. Return the output as a json
-
-HTTPurple 🪁 uses continuations to make this standard scenario straight-forward (see example below).
-
-Furthermore, HTTPurple 🪁 doesn't mandate a json parsing library. So you can use [`argonaut`](https://github.com/purescript-contrib/purescript-argonaut) using the [`argonaut-driver`](https://github.com/sigma-andex/purescript-httpurple-argonaut), use [`yoga-json`](https://github.com/rowtype-yoga/purescript-yoga-json) using the [`yoga-json-driver`](https://github.com/sigma-andex/purescript-httpurple-yoga-json) or write your own json driver.
-
-Here is an example how that looks like:
-```purescript
-apiRouter { route: Home, method: Post, body } = usingCont do
-    req@{ name } :: HelloWorldRequest <- fromJson Argonaut.jsonDecoder body
-    ok $ "hello " <> name <> "!"
-```
-In case `fromJson` succeeds, the next step will be executed, otherwise a 400 bad request is returned. 
+HTTPurple 🪁 has some helpers to make json parsing and validation very simple. See the [requests guide](./Requests.md) for more information.
 
 ## Other improvmenets
 
 * Default closing handler - A default closing handler is provided so you can just stop your server using `ctrl+x` without having to worry about anything. You can deactivate it by setting `closingHandler: NoClosingHandler` in the listen options.
-
-## Hot module reloading
-
-With HTTPurple 🪁 you can easily set up a hot module reloading workflow:
-
-Create an `index.js` with the content:
-```javascript
-import * as Main from './output/Main/index.js'
-Main.main()
-```
-
-Add to `package.json`:
-```json
-  ...
-  "scripts": {
-      "hot": "spago build -w & nodemon \"node index.js\""
-    },
-  "type": "module",
-  ...
-```
-
-Spin up:
-```bash
-npm run hot
-```
-Develop:
-```bash
-HTTPurple 🪁 up and running on http://0.0.0.0:8080
-[nodemon] restarting due to changes...
-[nodemon] restarting due to changes...
-[nodemon] starting `node "node index.js" index.js`
-HTTPurple 🪁 up and running on http://0.0.0.0:8080
-[nodemon] restarting due to changes...
-[nodemon] restarting due to changes...
-[nodemon] starting `node "node index.js" index.js`
-HTTPurple 🪁 up and running on http://0.0.0.0:8080
-```

@@ -2,7 +2,9 @@
 
 ## Unpublished
 
-- Add json request parsing simplifications
+## V1.2.0
+
+- Add json request parsing
 - Add request validation
 
 ## v1.1.0
