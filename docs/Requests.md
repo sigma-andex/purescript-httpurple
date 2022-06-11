@@ -14,10 +14,10 @@ This section describes how to work with requests bodys. For information about ro
 
 ```purescript
 router { route: Home, method: Post, body } = usingCont do
-    jsonRequest :: MyRequest <- fromJson Argonaut.jsonDecoder body
-    input :: MyValidatedInput <- fromValidated validateMyRequest jsonRequest
-    output :: MyOutput <- lift $ doSomethingAndReturnAff input
-    ok' jsonHeaders $ toJson Argonaut.jsonEncoder output
+    jsonRequest :: MyRequest <- fromJson Argonaut.jsonDecoder body -- parse the json input
+    input :: MyValidatedInput <- fromValidated validateMyRequest jsonRequest -- validate the input data
+    output :: MyOutput <- lift $ doSomethingAndReturnAff input -- do your business logic
+    ok' jsonHeaders $ toJson Argonaut.jsonEncoder output -- return output as json
 ```
 
 ## Introduction
