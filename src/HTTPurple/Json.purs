@@ -3,7 +3,6 @@ module HTTPurple.Json
   , JsonEncoder(..)
   , fromJson
   , fromJsonE
-  , jsonHeader
   , jsonHeaders
   , toJson
   ) where
@@ -14,10 +13,9 @@ import Control.Monad.Cont (ContT(..))
 import Data.Either (Either, either)
 import Data.Function as Function
 import Data.Newtype (class Newtype, un)
-import Data.Tuple (Tuple(..))
 import Effect.Aff.Class (class MonadAff)
 import HTTPurple.Body (RequestBody, toString)
-import HTTPurple.Headers (Headers, headers)
+import HTTPurple.Headers (ResponseHeaders, headers)
 import HTTPurple.Response (Response, badRequest)
 
 newtype JsonDecoder err json = JsonDecoder (String -> Either err json)
@@ -28,11 +26,8 @@ newtype JsonEncoder json = JsonEncoder (json -> String)
 
 instance Newtype (JsonEncoder json) (json -> String)
 
-jsonHeader :: Tuple String String
-jsonHeader = Tuple "Content-Type" "application/json"
-
-jsonHeaders :: Headers
-jsonHeaders = headers [ jsonHeader ]
+jsonHeaders :: ResponseHeaders
+jsonHeaders = headers { "Content-Type": "application/json" }
 
 fromJsonContinuation ::
   forall err json m.
