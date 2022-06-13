@@ -5,8 +5,7 @@ module HTTPurple.Routes
   , mkRoute
   , orElse
   , type (<+>)
-  )
-  where
+  ) where
 
 import Prelude
 
