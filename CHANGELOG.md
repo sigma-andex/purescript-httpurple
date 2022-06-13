@@ -2,7 +2,12 @@
 
 ## Unpublished
 
-## V1.2.0
+## v1.3.0
+
+- Add `catchAll` route
+- Update documentation
+
+## v1.2.0
 
 - Add json request parsing
 - Add request validation
