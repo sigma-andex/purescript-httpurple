@@ -5,15 +5,24 @@
 
 A functional http framework with a focus on type-safety and simplicity. 
 
-This project was originally forked from the amazing [HTTPure](https://github.com/citizennet/purescript-httpure) http server framework. If you are coming from HTTPure you might want to have a look at the [differences to HTTPure](./docs/Differences.md).
+This project was originally forked from the amazing [HTTPure](https://github.com/citizennet/purescript-httpure) http server framework, but has since deviated quite a bit from HTTPure. If you are coming from HTTPure you might want to have a look at the [differences to HTTPure](./docs/Differences.md).
 
 ## ToC
+1. [Features](#features)
 1. [Installation](#installation)
 1. [Quick start](#quick-start)
 1. [Documenation](#documentation)
 1. [Examples](#examples)
 1. [Testing](#testing)
 1. [License](#license)
+
+## Features
+
+* λ fp-style http server & request handlers
+* 🛣 Powerful & type-safe routing dsl
+* 🕵🏻‍♂️ Easy json parsing and data validation
+* 📜 Extensive documentation & examples
+
 
 ## Installation
 
