@@ -8,6 +8,7 @@
   * [Adding further types](#adding-further-types)
   * [Composing routes](#composing-routes)
   * [Reverse routing](#reverse-routing)
+  * [Catch-all route](#catch-all-route)
 * [Working with request headers](#working-with-request-headers)
 
 ## Routing introduction
@@ -244,6 +245,51 @@ main = serve { port: 8080 } { route, router }
     redirect = headers [ Tuple "Location" $ print route $ New account ]
 ```
 
+### Catch-all route
+
+You can easily create a catch all route by using the predefined `catchAll`.
+
+```purescript
+import HTTPurple
+
+data Route = CatchAll (Array String) -- list of paths
+derive instance Generic Route _ 
+
+route :: RouteDuplex' Route
+route = mkRoute
+  { "CatchAll": catchAll
+  }
+
+main :: ServerM
+main = serve {} { route, router }
+  where
+  router { route: CatchAll paths } = ok $ "hello 🗺!"
+```
+
+### Routing prefixes 
+
+You can create a route prefix such as `/v1/` using the `prefix` method. Here is an example:
+
+```purescript
+import HTTPurple
+
+data Route = Home -- list of paths
+derive instance Generic Route _ 
+
+route :: RouteDuplex' Route
+route = root $ prefix "v1" $ sum
+  { "Home": noArgs
+  }
+
+main :: ServerM
+main = serve {} { route, router }
+  where
+  router { route: Home } = ok $ "hello 🗺!"
+```
+
+Now all requests need to be prefixed with `/v1/`. 
+
+**Note**: `prefix` takes exactly one path segment. If you need two prefixes, e.g. for `/api/v1/` you need to use two prefixes: `root $ prefix "api" $ prefix "v1" $ sum`.
 
 ## Matching HTTP Methods
 
