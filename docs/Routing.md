@@ -9,6 +9,7 @@
   * [Composing routes](#composing-routes)
   * [Reverse routing](#reverse-routing)
   * [Catch-all route](#catch-all-route)
+  * [Routing prefixes](#routing-prefixes)
 * [Working with request headers](#working-with-request-headers)
 
 ## Routing introduction
