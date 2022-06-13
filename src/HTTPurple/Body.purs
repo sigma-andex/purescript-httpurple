@@ -19,7 +19,7 @@ import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
 import Effect.Ref (modify, new, read, write) as Ref
-import HTTPurple.Headers (Headers, header)
+import HTTPurple.Headers (RequestHeaders, mkRequestHeader)
 import Node.Buffer (Buffer, concat, fromString, size)
 import Node.Buffer (toString) as Buffer
 import Node.Encoding (Encoding(UTF8))
@@ -103,7 +103,7 @@ class Body b where
   -- | things like `Content-Type`, `Content-Length`, and `Transfer-Encoding`.
   -- | Note that any headers passed in a response helper such as `ok'` will take
   -- | precedence over these.
-  defaultHeaders :: b -> Effect Headers
+  defaultHeaders :: b -> Effect RequestHeaders
   -- | Given a body value and a Node HTTP `Response` value, write the body value
   -- | to the Node response.
   write :: b -> Response -> Aff Unit
@@ -126,7 +126,7 @@ instance Body String where
 -- | using `Buffer.size`, and to send the response, we just write the buffer to
 -- | the stream and end the stream.
 instance Body Buffer where
-  defaultHeaders buf = header "Content-Length" <$> show <$> size buf
+  defaultHeaders buf = mkRequestHeader "Content-Length" <$> show <$> size buf
   write body response = makeAff \done -> do
     let stream = responseAsStream response
     void $ Stream.write stream body $ const $ end stream $ const $ done $ Right unit
@@ -138,7 +138,7 @@ instance Body Buffer where
 instance
   TypeEquals (Stream r) (Readable s) =>
   Body (Stream r) where
-  defaultHeaders _ = pure $ header "Transfer-Encoding" "chunked"
+  defaultHeaders _ = pure $ mkRequestHeader "Transfer-Encoding" "chunked"
   write body response = makeAff \done -> do
     let stream = to body
     void $ pipe stream $ responseAsStream response

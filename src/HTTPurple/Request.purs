@@ -14,7 +14,7 @@ import Effect.Class (liftEffect)
 import Foreign.Object (isEmpty, toArrayWithKey)
 import HTTPurple.Body (RequestBody)
 import HTTPurple.Body (read) as Body
-import HTTPurple.Headers (Headers)
+import HTTPurple.Headers (RequestHeaders)
 import HTTPurple.Headers (read) as Headers
 import HTTPurple.Method (Method)
 import HTTPurple.Method (read) as Method
@@ -36,7 +36,7 @@ type Request route =
   , path :: Path
   , query :: Query
   , route :: route
-  , headers :: Headers
+  , headers :: RequestHeaders
   , body :: RequestBody
   , httpVersion :: Version
   , url :: String
