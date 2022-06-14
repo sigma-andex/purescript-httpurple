@@ -71,12 +71,16 @@ newtype ResponseHeaders = ResponseHeaders (Map CaseInsensitiveString (Array Stri
 instance Semigroup ResponseHeaders where
   append (ResponseHeaders a) (ResponseHeaders b) = ResponseHeaders $ union b a
 
--- | Allow a `RequestHeaders` to be represented as a string. This string is formatted
+-- | Allow a `ResponseHeaders` to be represented as a string. This string is formatted
 -- | in HTTP headers format.
 instance Show ResponseHeaders where
   show (ResponseHeaders headers') = foldMapWithIndex showField headers' <> "\n"
     where
     showField key value = Array.foldMap (\v -> unwrap key <> ": " <> v <> "\n") value
+
+-- | Compare two `ResponseHeaders` objects by comparing the underlying `Objects`.
+instance Eq ResponseHeaders where
+  eq (ResponseHeaders a) (ResponseHeaders b) = eq a b
 
 -- | Get the headers out of a HTTP `Request` object.
 read :: Request -> RequestHeaders
