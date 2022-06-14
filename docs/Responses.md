@@ -55,30 +55,29 @@ codes.
 ## Setting Response Headers
 
 If you need to return response headers, you can do so using the prime versions
-of the response helpers. These functions take an `HTTPure.Headers` object. You
-can construct an `HTTPure.Headers` in a few ways:
+of the response helpers. These functions take an `HTTPure.ResponseHeaders` object. You
+can construct an `HTTPure.ResponseHeaders` in a few ways:
 
-- `HTTPure.empty` - Construct an empty `HTTPure.Headers`
+- `HTTPure.empty` - Construct an empty `HTTPure.ResponseHeaders`
 - `HTTPure.header` - Given a string with a header name and a string with a
-  value, construct a singleton `HTTPure.Headers`. For instance:
+  value, construct a singleton `HTTPure.ResponseHeaders`. For instance:
 
 ```purescript
-headers = HTTPure.header "X-My-Header" "value"
+headers = HTTPure.header "Content-Type" "application/json"
 ```
 
-- `HTTPure.headers` - Construct a `HTTPure.Headers` from an `Array` of `Tuples`
-  of two `Strings`, where the first `String` is the header name and the second
-  `String` is the header value.  For instance:
+- `HTTPure.headers` - Construct a `HTTPure.Headers` from a record:
 
 ```purescript
-headers = HTTPure.headers
-  [ Tuple "X-Header-A" "valueA"
-  , Tuple "X-Header-B" "valueB"
-  ]
+headers = HTTPure.headers {
+  "Content-Type": "application/json",
+  "Set-Cookie": ["cookie-value-1", "cookie-value-2"], -- note: you can set multiple headers by using an Array
+  "X-My-CustomHeader": "some-value"
+}
 ```
 
-Because `HTTPure.Headers` has an instance of `Semigroup`, you can also append
-`HTTPure.Headers` objects:
+Because `HTTPure.ResponseHeaders` has an instance of `Semigroup`, you can also append
+`HTTPure.ResponseHeaders` objects:
 
 ```purescript
 headers =

@@ -12,7 +12,7 @@ import Effect.Aff (Aff)
 import Effect.Exception (error)
 import Foreign.Object (singleton)
 import HTTPurple.Body (toString)
-import HTTPurple.Headers (headers)
+import HTTPurple.Headers (headers, mkRequestHeaders)
 import HTTPurple.Method (Method(Post))
 import HTTPurple.Request (fromHTTPRequest, fullPath)
 import HTTPurple.Version (Version(HTTP1_1))
@@ -50,7 +50,7 @@ fromHTTPRequestSpec =
       mock.query ?= singleton "a" "b"
     it "contains the correct headers" do
       mock <- mockRequest' # getRight
-      mock.headers ?= headers mockHeaders
+      mock.headers ?= mkRequestHeaders mockHeaders
     it "contains the correct body" do
       mockBody <- mockRequest' # getRight >>= (_.body >>> toString)
       mockBody ?= "body"

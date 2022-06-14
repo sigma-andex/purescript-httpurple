@@ -6,19 +6,12 @@ import Data.Either (Either(Right))
 import Effect.Aff (makeAff, nonCanceler)
 import Effect.Class (liftEffect)
 import HTTPurple.Body (defaultHeaders)
-import HTTPurple.Headers (header)
+import HTTPurple.Headers (header, toResponseHeaders)
 import HTTPurple.Response (emptyResponse, emptyResponse', response, response', send)
 import Node.Encoding (Encoding(UTF8))
 import Node.HTTP (responseAsStream)
 import Node.Stream (end, writeString)
-import Test.HTTPurple.TestHelpers
-  ( Test
-  , getResponseBody
-  , getResponseHeader
-  , getResponseStatus
-  , mockResponse
-  , (?=)
-  )
+import Test.HTTPurple.TestHelpers (Test, getResponseBody, getResponseHeader, getResponseStatus, mockResponse, (?=))
 import Test.Spec (describe, it)
 
 sendSpec :: Test
@@ -62,7 +55,7 @@ responseFunctionSpec =
     it "has only default headers" do
       resp <- response 123 "test"
       defaultHeaders' <- liftEffect $ defaultHeaders "test"
-      resp.headers ?= defaultHeaders'
+      resp.headers ?= toResponseHeaders defaultHeaders'
     it "has the right writeBody function" do
       body <- do
         resp <- response 123 "test"
@@ -83,7 +76,7 @@ response'Spec =
     it "has the right headers" do
       resp <- mockResponse'
       defaultHeaders' <- liftEffect $ defaultHeaders "test"
-      resp.headers ?= defaultHeaders' <> mockHeaders
+      resp.headers ?= toResponseHeaders defaultHeaders' <> mockHeaders
     it "has the right writeBody function" do
       body <- do
         resp <- mockResponse'
@@ -101,7 +94,7 @@ emptyResponseSpec =
     it "has only default headers" do
       resp <- emptyResponse 123
       defaultHeaders' <- liftEffect $ defaultHeaders ""
-      resp.headers ?= defaultHeaders'
+      resp.headers ?= toResponseHeaders defaultHeaders'
     it "has the right writeBody function" do
       body <- do
         resp <- emptyResponse 123
@@ -122,7 +115,7 @@ emptyResponse'Spec =
     it "has the right headers" do
       resp <- mockResponse'
       defaultHeaders' <- liftEffect $ defaultHeaders ""
-      resp.headers ?= mockHeaders <> defaultHeaders'
+      resp.headers ?= mockHeaders <> toResponseHeaders defaultHeaders'
     it "has the right writeBody function" do
       body <- do
         resp <- mockResponse'
