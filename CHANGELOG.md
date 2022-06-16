@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unpublished
+- Separate `Headers` into `RequestHeaders` and `ResponseHeaders`
+- Allow passing a record to `headers` to make `ResponseHeaders` easier
 
 ## v1.3.0
 

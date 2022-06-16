@@ -12,8 +12,7 @@ module HTTPurple.Headers
   , read
   , toResponseHeaders
   , write
-  )
-  where
+  ) where
 
 import Prelude
 
@@ -36,8 +35,9 @@ import Prim.RowList (class RowToList, Cons, Nil)
 import Record as Record
 import Type.Proxy (Proxy(..))
 
--- | The `RequestHeaders` type is just sugar for a `Object` of `Strings`
--- | that represents the set of headers in an HTTP request or response.
+-- | The `RequestHeaders` type is a wrapper for a map
+-- | that represents the set of headers in an HTTP request.
+-- | A request header contains maximum one value per key.
 newtype RequestHeaders = RequestHeaders (Map CaseInsensitiveString String)
 
 derive instance Newtype RequestHeaders _
@@ -47,14 +47,14 @@ derive instance Newtype RequestHeaders _
 instance Lookup RequestHeaders String String where
   lookup (RequestHeaders headers') key = headers' !! key
 
--- | Allow a `Headers` to be represented as a string. This string is formatted
+-- | Allow a `RequestHeaders` to be represented as a string. This string is formatted
 -- | in HTTP headers format.
 instance Show RequestHeaders where
   show (RequestHeaders headers') = foldMapWithIndex showField headers' <> "\n"
     where
     showField key value = unwrap key <> ": " <> value <> "\n"
 
--- | Compare two `Headers` objects by comparing the underlying `Objects`.
+-- | Compare two `RequestHeaders` objects by comparing the underlying `Objects`.
 instance Eq RequestHeaders where
   eq (RequestHeaders a) (RequestHeaders b) = eq a b
 
@@ -62,10 +62,11 @@ instance Eq RequestHeaders where
 instance Semigroup RequestHeaders where
   append (RequestHeaders a) (RequestHeaders b) = RequestHeaders $ union b a
 
--- | The `RequestHeaders` type is just sugar for a `Object` of `Strings`
--- | that represents the set of headers in an HTTP request or response.
+-- | The `ResponseHeaders` type is a wrapper for a map
+-- | that represents the set of headers in an HTTP response.
+-- | A response header can contain multiple values per key, 
+-- | e.g. in the case of multiple Set-Cookie directives.
 newtype ResponseHeaders = ResponseHeaders (Map CaseInsensitiveString (Array String))
-
 
 -- | Allow one `ResponseHeaders` objects to be appended to another.
 instance Semigroup ResponseHeaders where
@@ -82,7 +83,7 @@ instance Show ResponseHeaders where
 instance Eq ResponseHeaders where
   eq (ResponseHeaders a) (ResponseHeaders b) = eq a b
 
--- | Get the headers out of a HTTP `Request` object.
+-- | Get the headers out of a HTTP `RequestHeaders` object.
 read :: Request -> RequestHeaders
 read = requestHeaders >>> fold insertField Map.empty >>> RequestHeaders
   where
@@ -95,18 +96,19 @@ write response (ResponseHeaders headers') = void $ traverseWithIndex writeField 
   where
   writeField key values = setHeaders response (unwrap key) values
 
--- | Return a `ResponseHeaders` containing nothing.
+-- | Return a `ResponseHeaders` containing no headers.
 empty :: ResponseHeaders
 empty = ResponseHeaders Map.empty
 
-
--- -- | Convert an `Array` of `Tuples` of 2 `Strings` to a `Headers` object.
+-- | Convert an `Array` of `Tuples` of 2 `Strings` to a `RequestHeaders` object.
+-- | This is intended mainly for internal use. 
 mkRequestHeaders :: Array (Tuple String String) -> RequestHeaders
 mkRequestHeaders = foldl insertField Map.empty >>> RequestHeaders
   where
   insertField x (Tuple key value) = insert (CaseInsensitiveString key) value x
 
 -- | Create a singleton header from a key-value pair.
+-- | This is intended mainly for internal use. 
 mkRequestHeader :: String -> String -> RequestHeaders
 mkRequestHeader key = singleton (CaseInsensitiveString key) >>> RequestHeaders
 
@@ -114,6 +116,8 @@ mkRequestHeader key = singleton (CaseInsensitiveString key) >>> RequestHeaders
 header :: String -> String -> ResponseHeaders
 header key = Array.singleton >>> singleton (CaseInsensitiveString key) >>> ResponseHeaders
 
+-- | Copy the request headers to the response headers
+-- | This is intended mainly for internal use. 
 toResponseHeaders :: RequestHeaders -> ResponseHeaders
 toResponseHeaders = un RequestHeaders >>> map (Array.singleton) >>> ResponseHeaders
 
@@ -128,7 +132,7 @@ else instance
   , RowToList r rl
   , RowToList tail tailRL
   , Row.Cons sym String tail r
-  , Row.Lacks sym                   tail
+  , Row.Lacks sym tail
   , ToHeadersHelper tail tailRL
   ) =>
   ToHeadersHelper r (Cons sym String tailRL) where
@@ -143,7 +147,7 @@ else instance
   , RowToList r rl
   , RowToList tail tailRL
   , Row.Cons sym (Array String) tail r
-  , Row.Lacks sym                   tail
+  , Row.Lacks sym tail
   , ToHeadersHelper tail tailRL
   ) =>
   ToHeadersHelper r (Cons sym (Array String) tailRL) where
@@ -156,7 +160,16 @@ else instance
     tail = Record.delete (Proxy :: Proxy sym) rec
 
 class ToHeaders r where
+  -- | Create `ResponseHeaders` from a record, an `Array (Tuple String String)` or an `Array (Tuple String (Array String))`
   headers :: r -> ResponseHeaders
 
-instance (RowToList r rl, ToHeadersHelper r rl) => ToHeaders (Record r) where
+instance ToHeaders (Array (Tuple String String)) where
+  headers = foldl insertField Map.empty >>> ResponseHeaders
+    where
+    insertField x (Tuple key value) = insert (CaseInsensitiveString key) (Array.singleton value) x
+else instance ToHeaders (Array (Tuple String (Array String))) where
+  headers = foldl insertField Map.empty >>> ResponseHeaders
+    where
+    insertField x (Tuple key value) = insert (CaseInsensitiveString key) value x
+else instance (RowToList r rl, ToHeadersHelper r rl) => ToHeaders (Record r) where
   headers = headersImpl (Proxy :: Proxy rl)

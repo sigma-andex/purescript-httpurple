@@ -3,9 +3,9 @@ module Examples.Headers.Main where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect.Console (log)
-import HTTPurple (Headers, Request, ResponseM, ServerM, header, ok', serve, (!@))
+import HTTPurple (Request, ResponseHeaders, ResponseM, ServerM, ok', serve, (!@))
+import HTTPurple.Headers (headers)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
 
@@ -19,8 +19,11 @@ route = RD.root $ RG.sum
   }
 
 -- | The headers that will be included in every response.
-responseHeaders :: Headers
-responseHeaders = header "X-Example" "hello world!"
+responseHeaders :: ResponseHeaders
+responseHeaders = headers
+  { "X-Example": "hello world!"
+  , "X-Example2": "hello world!"
+  }
 
 -- | Route to the correct handler
 router :: Request Route -> ResponseM
