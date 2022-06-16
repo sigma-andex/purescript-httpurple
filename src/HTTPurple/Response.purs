@@ -139,7 +139,7 @@ import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import HTTPurple.Body (class Body, defaultHeaders, write)
-import HTTPurple.Headers (RequestHeaders, ResponseHeaders, empty, toResponseHeaders)
+import HTTPurple.Headers (ResponseHeaders, empty, toResponseHeaders)
 import HTTPurple.Headers (write) as Headers
 import HTTPurple.Status (Status)
 import HTTPurple.Status (accepted, alreadyReported, badGateway, badRequest, conflict, continue, created, expectationFailed, failedDependency, forbidden, found, gatewayTimeout, gone, hTTPVersionNotSupported, iMUsed, imATeapot, insufficientStorage, internalServerError, lengthRequired, locked, loopDetected, methodNotAllowed, misdirectedRequest, movedPermanently, multiStatus, multipleChoices, networkAuthenticationRequired, noContent, nonAuthoritativeInformation, notAcceptable, notExtended, notFound, notImplemented, notModified, ok, partialContent, payloadTooLarge, paymentRequired, permanentRedirect, preconditionFailed, preconditionRequired, processing, proxyAuthenticationRequired, rangeNotSatisfiable, requestHeaderFieldsTooLarge, requestTimeout, resetContent, seeOther, serviceUnavailable, switchingProtocols, temporaryRedirect, tooManyRequests, uRITooLong, unauthorized, unavailableForLegalReasons, unprocessableEntity, unsupportedMediaType, upgradeRequired, useProxy, variantAlsoNegotiates, write) as Status
