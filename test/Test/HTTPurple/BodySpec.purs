@@ -7,7 +7,7 @@ import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Ref (new) as Ref
 import HTTPurple.Body (RequestBody, defaultHeaders, read, toBuffer, toStream, toString, write)
-import HTTPurple.Headers (header)
+import HTTPurple.Headers (mkRequestHeader)
 import Node.Buffer (Buffer, fromString)
 import Node.Buffer (toString) as Buffer
 import Node.Encoding (Encoding(UTF8))
@@ -72,20 +72,20 @@ defaultHeadersSpec =
       describe "with an ASCII string" do
         it "has the correct Content-Length header" do
           headers <- liftEffect $ defaultHeaders "ascii"
-          headers ?= header "Content-Length" "5"
+          headers ?= (mkRequestHeader "Content-Length" "5")
       describe "with a UTF-8 string" do
         it "has the correct Content-Length header" do
           headers <- liftEffect $ defaultHeaders "\x2603"
-          headers ?= header "Content-Length" "3"
+          headers ?= (mkRequestHeader "Content-Length" "3")
     describe "Buffer" do
       it "has the correct Content-Length header" do
         buf :: Buffer <- liftEffect $ fromString "foobar" UTF8
         headers <- liftEffect $ defaultHeaders buf
-        headers ?= header "Content-Length" "6"
+        headers ?= (mkRequestHeader "Content-Length" "6")
     describe "Readable" do
       it "specifies the Transfer-Encoding header" do
         headers <- liftEffect $ defaultHeaders $ stringToStream "test"
-        headers ?= header "Transfer-Encoding" "chunked"
+        headers ?= (mkRequestHeader "Transfer-Encoding" "chunked")
 
 writeSpec :: Test
 writeSpec =

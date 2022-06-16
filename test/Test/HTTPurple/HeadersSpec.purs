@@ -5,7 +5,7 @@ import Prelude
 import Data.Maybe (Maybe(Nothing, Just))
 import Data.Tuple (Tuple(Tuple))
 import Effect.Class (liftEffect)
-import HTTPurple.Headers (empty, header, headers, read, write)
+import HTTPurple.Headers (empty, header, headers, mkRequestHeader, mkRequestHeaders, read, write)
 import HTTPurple.Lookup ((!!))
 import Test.HTTPurple.TestHelpers ((?=))
 import Test.HTTPurple.TestHelpers as TestHelpers
@@ -17,20 +17,20 @@ lookupSpec =
     describe "when the string is in the header set" do
       describe "when searching with lowercase" do
         it "is Just the string" do
-          header "x-test" "test" !! "x-test" ?= Just "test"
+          mkRequestHeader "x-test" "test" !! "x-test" ?= Just "test"
       describe "when searching with uppercase" do
         it "is Just the string" do
-          header "x-test" "test" !! "X-Test" ?= Just "test"
+          mkRequestHeader "x-test" "test" !! "X-Test" ?= Just "test"
       describe "when the string is uppercase" do
         describe "when searching with lowercase" do
           it "is Just the string" do
-            header "X-Test" "test" !! "x-test" ?= Just "test"
+            mkRequestHeader "X-Test" "test" !! "x-test" ?= Just "test"
         describe "when searching with uppercase" do
           it "is Just the string" do
-            header "X-Test" "test" !! "X-Test" ?= Just "test"
+            mkRequestHeader "X-Test" "test" !! "X-Test" ?= Just "test"
     describe "when the string is not in the header set" do
       it "is Nothing" do
-        ((empty !! "X-Test") :: Maybe String) ?= Nothing
+        ((mkRequestHeaders [] !! "X-Test") :: Maybe String) ?= Nothing
 
 showSpec :: TestHelpers.Test
 showSpec =
@@ -83,12 +83,12 @@ readSpec =
     describe "with no headers" do
       it "is an empty Map" do
         request <- TestHelpers.mockRequest "" "" "" "" []
-        read request ?= empty
+        read request ?= (mkRequestHeaders [])
     describe "with headers" do
       it "is a Map with the contents of the headers" do
         let testHeader = [ Tuple "X-Test" "test" ]
         request <- TestHelpers.mockRequest "" "" "" "" testHeader
-        read request ?= headers testHeader
+        read request ?= mkRequestHeaders testHeader
 
 writeSpec :: TestHelpers.Test
 writeSpec =
@@ -98,7 +98,7 @@ writeSpec =
         mock <- TestHelpers.mockResponse
         write mock $ header "X-Test" "test"
         pure $ TestHelpers.getResponseHeader "X-Test" mock
-      header ?= "test"
+      header ?= [ "test" ]
 
 emptySpec :: TestHelpers.Test
 emptySpec =

@@ -3,10 +3,12 @@ module Test.HTTPurple.ResponseSpec where
 import Prelude
 
 import Data.Either (Either(Right))
+import Debug (spy)
 import Effect.Aff (makeAff, nonCanceler)
 import Effect.Class (liftEffect)
 import HTTPurple.Body (defaultHeaders)
-import HTTPurple.Headers (header, toResponseHeaders)
+import HTTPurple.Headers (toResponseHeaders)
+import HTTPurple.Headers as Headers
 import HTTPurple.Response (emptyResponse, emptyResponse', response, response', send)
 import Node.Encoding (Encoding(UTF8))
 import Node.HTTP (responseAsStream)
@@ -20,7 +22,7 @@ sendSpec =
     let
       mockResponse' =
         { status: 123
-        , headers: header "Test" "test"
+        , headers: Headers.header "Test" "test"
         , writeBody:
             \response -> makeAff \done -> do
               stream <- pure $ responseAsStream response
@@ -32,7 +34,7 @@ sendSpec =
         httpResponse <- liftEffect mockResponse
         send httpResponse mockResponse'
         pure $ getResponseHeader "Test" httpResponse
-      header ?= "test"
+      header ?= [ "test" ]
     it "writes the status" do
       status <- do
         httpResponse <- liftEffect mockResponse
@@ -68,7 +70,7 @@ response'Spec :: Test
 response'Spec =
   describe "response'" do
     let
-      mockHeaders = header "Test" "test"
+      mockHeaders = Headers.header "Test" "test"
       mockResponse' = response' 123 mockHeaders "test"
     it "has the right status" do
       resp <- mockResponse'
@@ -107,7 +109,7 @@ emptyResponse'Spec :: Test
 emptyResponse'Spec =
   describe "emptyResponse'" do
     let
-      mockHeaders = header "Test" "test"
+      mockHeaders = Headers.header "Test" "test"
       mockResponse' = emptyResponse' 123 mockHeaders
     it "has the right status" do
       resp <- mockResponse'

@@ -5,7 +5,7 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Effect.Console (log)
-import HTTPurple (Headers, Request, ResponseM, ServerM, header, ok', serve)
+import HTTPurple (Request, ResponseHeaders, ResponseM, ServerM, header, ok', serve)
 import Node.FS.Aff (readFile)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
@@ -23,7 +23,7 @@ route = RD.root $ RG.sum
 filePath :: String
 filePath = "./docs/Examples/BinaryResponse/circle.png"
 
-responseHeaders :: Headers
+responseHeaders :: ResponseHeaders
 responseHeaders = header "Content-Type" "image/png"
 
 -- | Respond with image data when run
