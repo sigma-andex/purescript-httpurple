@@ -122,7 +122,7 @@ HTTPurple 🪁 has some helpers to make json parsing and validation very simple.
 ## Headers
 
 HTTPurple 🪁 has two separate types for headers, namely `RequestHeader` and `ResponseHeader`. `ResponseHeader` wraps `Map CaseInsensitiveString (Array String)` and therefore allows setting multiple response headers. This is useful if you e.g. want to set multiple `Set-Cookie` headers.
-Also you can create the headers by passing a record. See the [responses documentation](./Differences.md) for more information.
+Also you can create the headers by passing a record. See the [responses documentation](./Responses.md) for more information.
 
 ## Other improvmenets
 
