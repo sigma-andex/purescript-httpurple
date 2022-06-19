@@ -16,7 +16,6 @@
   , "node-buffer"
   , "node-fs"
   , "node-http"
-  , "node-net"
   , "node-process"
   , "node-streams"
   , "options"
@@ -31,7 +30,6 @@
   , "transformers"
   , "tuples"
   , "type-equality"
-  , "typelevel-prelude"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
