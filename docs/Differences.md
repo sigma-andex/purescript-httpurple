@@ -72,7 +72,7 @@ main = serve { port: 8080 } { route: api, router: apiRouter }
   apiRouter { route: Account account } = found' redirect ""
     where
     reverseRoute = print api $ Profile account
-    redirect = headers [ Tuple "Location" reverseRoute ]
+    redirect = headers { "Location": reverseRoute }
   apiRouter { route: Search { q, sorting } } = ok $ "searching for query " <> q <> " " <> case sorting of
     Just Asc -> "ascending"
     Just Desc -> "descending"
@@ -124,6 +124,6 @@ HTTPurple 🪁 has some helpers to make json parsing and validation very simple.
 HTTPurple 🪁 has two separate types for headers, namely `RequestHeader` and `ResponseHeader`. `ResponseHeader` wraps `Map CaseInsensitiveString (Array String)` and therefore allows setting multiple response headers. This is useful if you e.g. want to set multiple `Set-Cookie` headers.
 Also you can create the headers by passing a record. See the [responses documentation](./Responses.md) for more information.
 
-## Other improvmenets
+## Other improvements
 
 * Default closing handler - A default closing handler is provided so you can just stop your server using `ctrl+x` without having to worry about anything. You can deactivate it by setting `closingHandler: NoClosingHandler` in the listen options.
