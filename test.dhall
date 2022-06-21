@@ -11,5 +11,6 @@ in conf // {
   , "debug"
   , "transformers"
   , "unsafe-coerce" 
+  , "typelevel-prelude"
   ]
 }
