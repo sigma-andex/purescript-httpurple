@@ -17,7 +17,6 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Options ((:=))
 import Data.Posix.Signal (Signal(..))
 import Data.Profunctor.Choice ((|||))
-import Debug (spy)
 import Effect (Effect)
 import Effect.Aff (Aff, catchError, message, runAff)
 import Effect.Class (liftEffect)
@@ -79,11 +78,13 @@ type ExtRoutingSettingsR route output r =
   | r
   )
 
+type MiddlewareSettingsR :: forall k1 k2. k1 -> k2 -> Row Type
 type MiddlewareSettingsR input output =
   ( middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
   , middlewareErrorHandler :: Error -> Request Unit -> Aff Response
   )
 
+type ExtRoutingSettings :: forall k. Type -> k -> Row Type -> Type
 type ExtRoutingSettings route input output = { | ExtRoutingSettingsR route output + MiddlewareSettingsR input output }
 
 -- | Given a router, handle unhandled exceptions it raises by
