@@ -1,16 +1,22 @@
 module HTTPurple.Request
-  ( Request
+  ( ExtRequest(..)
+  , Request
+  , RequestR
   , fromHTTPRequest
+  , fromHTTPRequestExt
+  , fromHTTPRequestUnit
   , fullPath
   ) where
 
 import Prelude
 
-import Data.Bifunctor (bimap)
+import Data.Bifunctor (rmap)
+import Data.Bitraversable (bitraverse)
 import Data.Either (Either)
+import Data.Newtype (class Newtype)
 import Data.String (joinWith)
 import Effect.Aff (Aff)
-import Effect.Class (liftEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Foreign.Object (isEmpty, toArrayWithKey)
 import HTTPurple.Body (RequestBody)
 import HTTPurple.Body (read) as Body
@@ -22,17 +28,22 @@ import HTTPurple.Path (Path)
 import HTTPurple.Path (read) as Path
 import HTTPurple.Query (Query)
 import HTTPurple.Query (read) as Query
+import HTTPurple.Record.Extra (pick)
+import HTTPurple.Record.Extra as Extra
 import HTTPurple.Utils (encodeURIComponent)
 import HTTPurple.Version (Version)
 import HTTPurple.Version (read) as Version
 import Node.HTTP (Request) as HTTP
 import Node.HTTP (requestURL)
+import Prim.Row (class Nub, class Union)
+import Prim.RowList (class RowToList)
+import Record (merge)
 import Routing.Duplex as RD
+import Type.Prelude (Proxy)
+import Unsafe.Coerce (unsafeCoerce)
 
--- | The `Request` type is a `Record` type that includes fields for accessing
--- | the different parts of the HTTP request.
-type Request route =
-  { method :: Method
+type RequestR route r =
+  ( method :: Method
   , path :: Path
   , query :: Query
   , route :: route
@@ -40,36 +51,71 @@ type Request route =
   , body :: RequestBody
   , httpVersion :: Version
   , url :: String
-  }
+  | r
+  )
+
+-- | The `Request` type is a `Record` type that includes fields for accessing
+-- | the different parts of the HTTP request.
+type Request route = { | RequestR route () }
+
+newtype ExtRequest :: Type -> Row Type -> Type
+newtype ExtRequest route ext = ExtRequest { | RequestR route ext }
+
+derive instance Newtype (ExtRequest route ext) _
 
 -- | Return the full resolved path, including query parameters. This may not
 -- | match the requested path--for instance, if there are empty path segments in
 -- | the request--but it is equivalent.
-fullPath :: forall route. Request route -> String
-fullPath request = "/" <> path <> questionMark <> queryParams
+fullPath :: forall r. { path :: Path, query :: Query | r } -> String
+fullPath { path: p, query } = "/" <> path <> questionMark <> queryParams
   where
-  path = joinWith "/" request.path
-  questionMark = if isEmpty request.query then "" else "?"
+  path = joinWith "/" p
+  questionMark = if isEmpty query then "" else "?"
   queryParams = joinWith "&" queryParamsArr
-  queryParamsArr = toArrayWithKey stringifyQueryParam request.query
+  queryParamsArr = toArrayWithKey stringifyQueryParam query
   stringifyQueryParam key value = encodeURIComponent key <> "=" <> encodeURIComponent value
+
+mkRequest :: forall route m. MonadEffect m => HTTP.Request -> route -> m (Request route)
+mkRequest request route = do
+  body <- liftEffect $ Body.read request
+  pure
+    { method: Method.read request
+    , path: Path.read request
+    , query: Query.read request
+    , route: route
+    , headers: Headers.read request
+    , body
+    , httpVersion: Version.read request
+    , url: requestURL request
+    }
 
 -- | Given an HTTP `Request` object, this method will convert it to an HTTPurple
 -- | `Request` object.
 fromHTTPRequest :: forall route. RD.RouteDuplex' route -> HTTP.Request -> Aff (Either (Request Unit) (Request route))
 fromHTTPRequest route request = do
-  body <- liftEffect $ Body.read request
-  let
-    mkRequest :: forall r. r -> Request r
-    mkRequest r =
-      { method: Method.read request
-      , path: Path.read request
-      , query: Query.read request
-      , route: r
-      , headers: Headers.read request
-      , body
-      , httpVersion: Version.read request
-      , url: requestURL request
-      }
-  pure $ bimap (const $ mkRequest unit) mkRequest $ RD.parse route (requestURL request)
+  RD.parse route (requestURL request) #
+    bitraverse (const $ mkRequest request unit) (mkRequest request)
 
+fromHTTPRequestUnit :: HTTP.Request -> Aff (Request Unit)
+fromHTTPRequestUnit request = mkRequest request unit
+
+fromHTTPRequestExt ::
+  forall ctx ctxRL thru route.
+  Union ctx thru ctx =>
+  Nub (RequestR route ctx) (RequestR route ctx) =>
+  RowToList ctx ctxRL =>
+  Extra.Keys ctxRL =>
+  RD.RouteDuplex' route ->
+  Proxy ctx ->
+  HTTP.Request ->
+  Aff (Either (Request Unit) (ExtRequest route ctx))
+fromHTTPRequestExt route _ nodeRequest = do
+  let
+    extension :: Record ctx
+    extension = pick (unsafeCoerce nodeRequest :: Record ctx)
+
+    addExtension :: Request route -> ExtRequest route ctx
+    addExtension = flip merge extension >>> ExtRequest
+
+  request <- fromHTTPRequest route nodeRequest
+  pure $ rmap addExtension request
