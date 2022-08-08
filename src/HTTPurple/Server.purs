@@ -5,22 +5,29 @@ module HTTPurple.Server
   , RoutingSettings
   , RoutingSettingsR
   , ServerM
+  , defaultMiddlewareErrorHandler
   , serve
+  , serveWithMiddleware
   ) where
 
 import Prelude
 
+import Control.Monad.Cont (ContT, runContT)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Options ((:=))
 import Data.Posix.Signal (Signal(..))
 import Data.Profunctor.Choice ((|||))
+import Debug (spy)
 import Effect (Effect)
-import Effect.Aff (catchError, message, runAff)
+import Effect.Aff (Aff, catchError, message, runAff)
 import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Effect.Console (error)
-import HTTPurple.Request (Request, fromHTTPRequest)
-import HTTPurple.Response (ResponseM, internalServerError, notFound, send)
+import Effect.Exception (Error)
+import HTTPurple.NodeMiddleware (MiddlewareResult(..), NextInvocation(..))
+import HTTPurple.Record.Extra as Extra
+import HTTPurple.Request (ExtRequest, Request, RequestR, fromHTTPRequest, fromHTTPRequestExt, fromHTTPRequestUnit)
+import HTTPurple.Response (Response, ResponseM, internalServerError, notFound, send)
 import Justifill (justifill)
 import Justifill.Fillable (class FillableFields)
 import Justifill.Justifiable (class JustifiableFields)
@@ -31,9 +38,13 @@ import Node.HTTP (close, listen)
 import Node.HTTP.Secure (cert, certString, key, keyString)
 import Node.HTTP.Secure (createServer) as HTTPS
 import Node.Process (onSignal)
-import Prim.Row (class Union)
+import Prim.Row (class Nub, class Union)
 import Prim.RowList (class RowToList)
+import Record (merge)
 import Routing.Duplex as RD
+import Safe.Coerce (coerce)
+import Type.Prelude (Proxy(..))
+import Type.Row (type (+))
 
 -- | The `ServerM` is just an `Effect` containing a callback to close the
 -- | server. This type is the return type of the HTTPurple serve and related
@@ -62,13 +73,31 @@ type RoutingSettingsR route =
 
 type RoutingSettings route = { | RoutingSettingsR route }
 
+type ExtRoutingSettingsR route output r =
+  ( route :: RD.RouteDuplex' route
+  , router :: ExtRequest route output -> ResponseM
+  | r
+  )
+
+type MiddlewareSettingsR input output =
+  ( middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
+  , middlewareErrorHandler :: Error -> Request Unit -> Aff Response
+  )
+
+type ExtRoutingSettings route input output = { | ExtRoutingSettingsR route output + MiddlewareSettingsR input output }
+
 -- | Given a router, handle unhandled exceptions it raises by
 -- | responding with 500 Internal Server Error.
-onError500 :: forall route. (Request route -> ResponseM) -> Request route -> ResponseM
+onError500 :: forall request. (request -> ResponseM) -> request -> ResponseM
 onError500 router request =
   catchError (router request) \err -> do
     liftEffect $ error $ message err
     internalServerError "Internal server error"
+
+defaultMiddlewareErrorHandler :: Error -> Request Unit -> Aff Response
+defaultMiddlewareErrorHandler err _ = do
+  liftEffect $ error $ message err
+  internalServerError "Internal server error"
 
 -- | This function takes a method which takes a `Request` and returns a
 -- | `ResponseM`, an HTTP `Request`, and an HTTP `Response`. It runs the
@@ -87,6 +116,62 @@ handleRequest { route, router, notFoundHandler } request httpresponse =
   void $ runAff (\_ -> pure unit) $ fromHTTPRequest route request
     >>= (notFoundHandler ||| onError500 router)
     >>= send httpresponse
+
+handleRequestUnit ::
+  (Request Unit -> ResponseM) ->
+  HTTP.Request ->
+  HTTP.Response ->
+  Effect Unit
+handleRequestUnit router request httpresponse =
+  void $ runAff (\_ -> pure unit) $ fromHTTPRequestUnit request
+    >>= (onError500 router)
+    >>= send httpresponse
+
+handleExtRequest ::
+  forall ctx ctxRL thru route.
+  Union ctx thru ctx =>
+  RowToList ctx ctxRL =>
+  Extra.Keys ctxRL =>
+  Nub (RequestR route ctx) (RequestR route ctx) =>
+  { route :: RD.RouteDuplex' route
+  , router :: ExtRequest route ctx -> ResponseM
+  , notFoundHandler :: Request Unit -> ResponseM
+  } ->
+  HTTP.Request ->
+  HTTP.Response ->
+  Aff Unit
+handleExtRequest { route, router, notFoundHandler } req resp = do
+  httpurpleReq <- fromHTTPRequestExt route (Proxy :: Proxy ctx) req
+  httpurpleResp <- (notFoundHandler ||| onError500 router) httpurpleReq
+  send resp httpurpleResp
+
+handleExtRequestWithMiddleware ::
+  forall input output outputRL thru route.
+  Union output thru output =>
+  RowToList output outputRL =>
+  Extra.Keys outputRL =>
+  Nub (RequestR route output) (RequestR route output) =>
+  { route :: RD.RouteDuplex' route
+  , middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
+  , middlewareErrorHandler :: Error -> Request Unit -> Aff Response
+  , router :: ExtRequest route output -> ResponseM
+  , notFoundHandler :: Request Unit -> ResponseM
+  } ->
+  HTTP.Request ->
+  HTTP.Response ->
+  Effect Unit
+handleExtRequestWithMiddleware { route, middleware, middlewareErrorHandler, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
+  eff <- liftEffect $ flip runContT (coerce >>> pure) $ middleware (MiddlewareResult { request: req, response: resp, middlewareResult: NotCalled })
+  executeHandler eff
+  where
+
+  executeHandler :: MiddlewareResult output -> Aff Unit
+  executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingFailed error }) =
+    liftEffect $ handleRequestUnit (middlewareErrorHandler error) request response
+  executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingSucceeded }) =
+    handleExtRequest { route, router, notFoundHandler } request response
+  executeHandler (MiddlewareResult { middlewareResult: NotCalled }) =
+    pure unit
 
 defaultNotFoundHandler :: forall route. Request route -> ResponseM
 defaultNotFoundHandler = const notFound
@@ -147,12 +232,66 @@ serve inputOptions { route, router } = do
     Nothing -> HTTP.createServer (handleRequest routingSettings)
   listen server options onStarted
   let closingHandler = close server
-  case filledOptions.closingHandler of
-    Just NoClosingHandler -> pure closingHandler
-    _ -> do
-      onSignal SIGINT $ closingHandler $ log "Aye, stopping service now. Goodbye!"
-      onSignal SIGTERM $ closingHandler $ log "Arrgghh I got stabbed in the back 🗡 ... good...bye..."
-      pure closingHandler
+  registerClosingHandler filledOptions.closingHandler closingHandler
+
+serveWithMiddleware ::
+  forall route from fromRL via missing missingList input output outputRL thru.
+  RowToList missing missingList =>
+  FillableFields missingList () missing =>
+  Union via missing (ListenOptionsR) =>
+  RowToList from fromRL =>
+  JustifiableFields fromRL from () via =>
+  Union output thru output =>
+  RowToList output outputRL =>
+  Extra.Keys outputRL =>
+  Nub (RequestR route output) (RequestR route output) =>
+  { | from } ->
+  ExtRoutingSettings route input output ->
+  ServerM
+serveWithMiddleware inputOptions settings = do
+  let
+    filledOptions :: ListenOptions
+    filledOptions = justifillListenOptions inputOptions
+
+    hostname = fromMaybe defaultHostname filledOptions.hostname
+    port = fromMaybe defaultPort filledOptions.port
+    onStarted = fromMaybe (defaultOnStart hostname port) filledOptions.onStarted
+
+    options :: HTTP.ListenOptions
+    options =
+      { hostname
+      , port
+      , backlog: filledOptions.backlog
+      }
+
+    routingSettings ::
+      { route :: RD.RouteDuplex' route
+      , middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
+      , middlewareErrorHandler :: Error -> Request Unit -> Aff Response
+      , router :: ExtRequest route output -> ResponseM
+      , notFoundHandler :: Request Unit -> ResponseM
+      }
+    routingSettings = merge settings { notFoundHandler: fromMaybe defaultNotFoundHandler filledOptions.notFoundHandler }
+
+    sslOptions = { certFile: _, keyFile: _ } <$> filledOptions.certFile <*> filledOptions.keyFile
+  server <- case sslOptions of
+    Just { certFile, keyFile } ->
+      do
+        cert' <- readTextFile UTF8 certFile
+        key' <- readTextFile UTF8 keyFile
+        let sslOpts = key := keyString key' <> cert := certString cert'
+        HTTPS.createServer sslOpts (handleExtRequestWithMiddleware routingSettings)
+    Nothing -> HTTP.createServer (handleExtRequestWithMiddleware routingSettings)
+  listen server options onStarted
+  let closingHandler = close server
+  registerClosingHandler filledOptions.closingHandler closingHandler
+
+registerClosingHandler :: Maybe ClosingHandler -> (Effect Unit -> Effect Unit) -> ServerM
+registerClosingHandler (Just NoClosingHandler) closingHandler = pure closingHandler
+registerClosingHandler _ closingHandler = do
+  onSignal SIGINT $ closingHandler $ log "Aye, stopping service now. Goodbye!"
+  onSignal SIGTERM $ closingHandler $ log "Arrgghh I got stabbed in the back 🗡 ... good...bye..."
+  pure closingHandler
 
 defaultHostname :: String
 defaultHostname = "0.0.0.0"
