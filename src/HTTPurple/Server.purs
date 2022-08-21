@@ -12,7 +12,7 @@ module HTTPurple.Server
 
 import Prelude
 
-import Control.Monad.Cont (ContT, runContT)
+import Control.Monad.Cont (runContT)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Options ((:=))
 import Data.Posix.Signal (Signal(..))
@@ -23,7 +23,7 @@ import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Effect.Console (error)
 import Effect.Exception (Error)
-import HTTPurple.NodeMiddleware (MiddlewareResult(..), NextInvocation(..))
+import HTTPurple.NodeMiddleware (MiddlewareResult(..), NextInvocation(..), NodeMiddlewareStack(..))
 import HTTPurple.Record.Extra as Extra
 import HTTPurple.Request (ExtRequest, Request, RequestR, fromHTTPRequest, fromHTTPRequestExt, fromHTTPRequestUnit)
 import HTTPurple.Response (Response, ResponseM, internalServerError, notFound, send)
@@ -78,13 +78,13 @@ type ExtRoutingSettingsR route output r =
   | r
   )
 
-type MiddlewareSettingsR :: forall k1 k2. k1 -> k2 -> Row Type
+type MiddlewareSettingsR :: Row Type -> Row Type -> Row Type
 type MiddlewareSettingsR input output =
-  ( middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
-  , middlewareErrorHandler :: Error -> Request Unit -> Aff Response
+  ( --middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
+  middleware :: NodeMiddlewareStack input output
   )
 
-type ExtRoutingSettings :: forall k. Type -> k -> Row Type -> Type
+type ExtRoutingSettings :: Type -> Row Type -> Row Type -> Type
 type ExtRoutingSettings route input output = { | ExtRoutingSettingsR route output + MiddlewareSettingsR input output }
 
 -- | Given a router, handle unhandled exceptions it raises by
@@ -153,22 +153,22 @@ handleExtRequestWithMiddleware ::
   Extra.Keys outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
   { route :: RD.RouteDuplex' route
-  , middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
-  , middlewareErrorHandler :: Error -> Request Unit -> Aff Response
+  --, middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
+  , middleware :: NodeMiddlewareStack input output
   , router :: ExtRequest route output -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
   } ->
   HTTP.Request ->
   HTTP.Response ->
   Effect Unit
-handleExtRequestWithMiddleware { route, middleware, middlewareErrorHandler, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
+handleExtRequestWithMiddleware { route, middleware: NodeMiddlewareStack middleware, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
   eff <- liftEffect $ flip runContT (coerce >>> pure) $ middleware (MiddlewareResult { request: req, response: resp, middlewareResult: NotCalled })
   executeHandler eff
   where
 
   executeHandler :: MiddlewareResult output -> Aff Unit
   executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingFailed error }) =
-    liftEffect $ handleRequestUnit (middlewareErrorHandler error) request response
+    liftEffect $ handleRequestUnit (defaultMiddlewareErrorHandler error) request response
   executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingSucceeded }) =
     handleExtRequest { route, router, notFoundHandler } request response
   executeHandler (MiddlewareResult { middlewareResult: NotCalled }) =
@@ -267,8 +267,8 @@ serveWithMiddleware inputOptions settings = do
 
     routingSettings ::
       { route :: RD.RouteDuplex' route
-      , middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
-      , middlewareErrorHandler :: Error -> Request Unit -> Aff Response
+      --, middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
+      , middleware :: NodeMiddlewareStack input output
       , router :: ExtRequest route output -> ResponseM
       , notFoundHandler :: Request Unit -> ResponseM
       }
