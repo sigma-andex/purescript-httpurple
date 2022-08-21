@@ -81,3 +81,9 @@ callNext next = runEffectFn1 next (asOneOf $ undefined)
 
 callNextWithError :: EffectFn1 NextHandlerArg Unit -> Error -> Effect Unit
 callNextWithError next err = runEffectFn1 next (asOneOf err)
+
+newtype NodeMiddlewareStack :: Row Type -> Row Type -> Type
+newtype NodeMiddlewareStack input output =
+  NodeMiddlewareStack (MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input))
+
+instance Newtype (NodeMiddlewareStack input output) (MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input))

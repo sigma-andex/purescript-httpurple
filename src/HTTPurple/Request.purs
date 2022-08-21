@@ -97,7 +97,7 @@ fromHTTPRequest route request = do
     bitraverse (const $ mkRequest request unit) (mkRequest request)
 
 fromHTTPRequestUnit :: HTTP.Request -> Aff (Request Unit)
-fromHTTPRequestUnit request = mkRequest request unit
+fromHTTPRequestUnit = flip mkRequest unit
 
 fromHTTPRequestExt ::
   forall ctx ctxRL thru route.
