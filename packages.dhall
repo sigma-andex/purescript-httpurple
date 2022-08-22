@@ -1,6 +1,5 @@
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20220805/packages.dhall
-        sha256:c80e241af3ba62fc42284b9bc26b4c9bd4525eebe4ab0e9198c9bbeac102f656
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20220821/packages.dhall
+        sha256:a2f8f83c1a195dc641089d5e3efe9ff997d487b570fd8a2e12994a73942711e5
 
 in  upstream
-  with untagged-union = ../purescript-untagged-union/spago.dhall as Location
