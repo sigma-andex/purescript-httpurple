@@ -82,7 +82,7 @@ type ExtRoutingSettingsR route output r =
 
 type MiddlewareSettingsR :: Row Type -> Row Type -> Row Type
 type MiddlewareSettingsR input output =
-  ( nodeMiddleware :: NodeMiddlewareStack input output
+  ( nodeMiddleware :: Maybe (NodeMiddlewareStack input output)
   )
 
 type ExtRoutingSettings :: Type -> Row Type -> Row Type -> Type
@@ -129,7 +129,7 @@ handleRequestUnit router request httpresponse =
     >>= (onError500 router)
     >>= send httpresponse
 
-handleExtRequestNT ::
+handleExtRequest ::
   forall ctx ctxRL thru route.
   Union ctx thru ctx =>
   RowToList ctx ctxRL =>
@@ -142,26 +142,33 @@ handleExtRequestNT ::
   HTTP.Request ->
   HTTP.Response ->
   Aff Unit
-handleExtRequestNT { route, router, notFoundHandler } req resp = do
+handleExtRequest { route, router, notFoundHandler } req resp = do
   httpurpleReq <- fromHTTPRequestExt route (Proxy :: Proxy ctx) req
   httpurpleResp <- (notFoundHandler ||| onError500 router) httpurpleReq
   send resp httpurpleResp
 
-handleExtRequestNTWithMiddleware ::
+-- handleRequest { route, router, notFoundHandler } request httpresponse =
+--   void $ runAff (\_ -> pure unit) $ fromHTTPRequest route request
+--     >>= (notFoundHandler ||| onError500 router)
+--     >>= send httpresponse
+handleExtRequestWithMiddleware ::
   forall input output outputRL thru route.
   Union output thru output =>
   RowToList output outputRL =>
   Extra.Keys outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
   { route :: RD.RouteDuplex' route
-  , nodeMiddleware :: NodeMiddlewareStack input output
+  , nodeMiddleware :: Maybe (NodeMiddlewareStack input output)
   , router :: ExtRequestNT route output -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
   } ->
   HTTP.Request ->
   HTTP.Response ->
   Effect Unit
-handleExtRequestNTWithMiddleware { route, nodeMiddleware: NodeMiddlewareStack middleware, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
+
+handleExtRequestWithMiddleware { route, nodeMiddleware: Nothing, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ 
+  handleExtRequest { route, router, notFoundHandler } req resp
+handleExtRequestWithMiddleware { route, nodeMiddleware:Just (NodeMiddlewareStack middleware), router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
   eff <- liftEffect $ flip runContT (coerce >>> pure) $ middleware (MiddlewareResult { request: req, response: resp, middlewareResult: NotCalled })
   executeHandler eff
   where
@@ -170,7 +177,7 @@ handleExtRequestNTWithMiddleware { route, nodeMiddleware: NodeMiddlewareStack mi
   executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingFailed error }) =
     liftEffect $ handleRequestUnit (defaultMiddlewareErrorHandler error) request response
   executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingSucceeded }) =
-    handleExtRequestNT { route, router, notFoundHandler } request response
+    handleExtRequest { route, router, notFoundHandler } request response
   executeHandler (MiddlewareResult { middlewareResult: NotCalled }) =
     pure unit
 
@@ -276,7 +283,7 @@ serveExtended inputOptions settings = do
 
     routingSettings ::
       { route :: RD.RouteDuplex' route
-      , nodeMiddleware :: NodeMiddlewareStack input output
+      , nodeMiddleware :: Maybe (NodeMiddlewareStack input output)
       , router :: ExtRequestNT route output -> ResponseM
       , notFoundHandler :: Request Unit -> ResponseM
       }
@@ -289,8 +296,8 @@ serveExtended inputOptions settings = do
         cert' <- readTextFile UTF8 certFile
         key' <- readTextFile UTF8 keyFile
         let sslOpts = key := keyString key' <> cert := certString cert'
-        HTTPS.createServer sslOpts (handleExtRequestNTWithMiddleware routingSettings)
-    Nothing -> HTTP.createServer (handleExtRequestNTWithMiddleware routingSettings)
+        HTTPS.createServer sslOpts (handleExtRequestWithMiddleware routingSettings)
+    Nothing -> HTTP.createServer (handleExtRequestWithMiddleware routingSettings)
   listen server options onStarted
   let closingHandler = close server
   registerClosingHandler filledOptions.closingHandler closingHandler

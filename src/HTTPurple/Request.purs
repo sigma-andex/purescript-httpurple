@@ -7,8 +7,7 @@ module HTTPurple.Request
   , fromHTTPRequestExt
   , fromHTTPRequestUnit
   , fullPath
-  )
-  where
+  ) where
 
 import Prelude
 
@@ -61,6 +60,7 @@ type RequestR route r =
 type Request route = { | RequestR route () }
 
 type ExtRequest route ext = { | RequestR route ext }
+
 newtype ExtRequestNT :: Type -> Row Type -> Type
 newtype ExtRequestNT route ext = ExtRequestNT { | RequestR route ext }
 
