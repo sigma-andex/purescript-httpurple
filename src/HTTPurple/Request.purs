@@ -1,12 +1,14 @@
 module HTTPurple.Request
-  ( ExtRequest(..)
+  ( ExtRequestNT(..)
+  , ExtRequest
   , Request
   , RequestR
   , fromHTTPRequest
   , fromHTTPRequestExt
   , fromHTTPRequestUnit
   , fullPath
-  ) where
+  )
+  where
 
 import Prelude
 
@@ -58,10 +60,11 @@ type RequestR route r =
 -- | the different parts of the HTTP request.
 type Request route = { | RequestR route () }
 
-newtype ExtRequest :: Type -> Row Type -> Type
-newtype ExtRequest route ext = ExtRequest { | RequestR route ext }
+type ExtRequest route ext = { | RequestR route ext }
+newtype ExtRequestNT :: Type -> Row Type -> Type
+newtype ExtRequestNT route ext = ExtRequestNT { | RequestR route ext }
 
-derive instance Newtype (ExtRequest route ext) _
+derive instance Newtype (ExtRequestNT route ext) _
 
 -- | Return the full resolved path, including query parameters. This may not
 -- | match the requested path--for instance, if there are empty path segments in
@@ -108,14 +111,14 @@ fromHTTPRequestExt ::
   RD.RouteDuplex' route ->
   Proxy ctx ->
   HTTP.Request ->
-  Aff (Either (Request Unit) (ExtRequest route ctx))
+  Aff (Either (Request Unit) (ExtRequestNT route ctx))
 fromHTTPRequestExt route _ nodeRequest = do
   let
     extension :: Record ctx
     extension = pick (unsafeCoerce nodeRequest :: Record ctx)
 
-    addExtension :: Request route -> ExtRequest route ctx
-    addExtension = flip merge extension >>> ExtRequest
+    addExtension :: Request route -> ExtRequestNT route ctx
+    addExtension = flip merge extension >>> ExtRequestNT
 
   request <- fromHTTPRequest route nodeRequest
   pure $ rmap addExtension request
