@@ -7,15 +7,17 @@ module HTTPurple.Server
   , ServerM
   , defaultMiddlewareErrorHandler
   , serve
-  , serveWithMiddleware
+  , serveExtended
   ) where
 
 import Prelude
 
 import Control.Monad.Cont (runContT)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Newtype (unwrap)
 import Data.Options ((:=))
 import Data.Posix.Signal (Signal(..))
+import Data.Profunctor (lcmap)
 import Data.Profunctor.Choice ((|||))
 import Effect (Effect)
 import Effect.Aff (Aff, catchError, message, runAff)
@@ -25,7 +27,7 @@ import Effect.Console (error)
 import Effect.Exception (Error)
 import HTTPurple.NodeMiddleware (MiddlewareResult(..), NextInvocation(..), NodeMiddlewareStack(..))
 import HTTPurple.Record.Extra as Extra
-import HTTPurple.Request (ExtRequest, Request, RequestR, fromHTTPRequest, fromHTTPRequestExt, fromHTTPRequestUnit)
+import HTTPurple.Request (ExtRequestNT, Request, RequestR, ExtRequest, fromHTTPRequest, fromHTTPRequestExt, fromHTTPRequestUnit)
 import HTTPurple.Response (Response, ResponseM, internalServerError, notFound, send)
 import Justifill (justifill)
 import Justifill.Fillable (class FillableFields)
@@ -80,8 +82,7 @@ type ExtRoutingSettingsR route output r =
 
 type MiddlewareSettingsR :: Row Type -> Row Type -> Row Type
 type MiddlewareSettingsR input output =
-  ( --middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
-  middleware :: NodeMiddlewareStack input output
+  ( nodeMiddleware :: NodeMiddlewareStack input output
   )
 
 type ExtRoutingSettings :: Type -> Row Type -> Row Type -> Type
@@ -128,40 +129,39 @@ handleRequestUnit router request httpresponse =
     >>= (onError500 router)
     >>= send httpresponse
 
-handleExtRequest ::
+handleExtRequestNT ::
   forall ctx ctxRL thru route.
   Union ctx thru ctx =>
   RowToList ctx ctxRL =>
   Extra.Keys ctxRL =>
   Nub (RequestR route ctx) (RequestR route ctx) =>
   { route :: RD.RouteDuplex' route
-  , router :: ExtRequest route ctx -> ResponseM
+  , router :: ExtRequestNT route ctx -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
   } ->
   HTTP.Request ->
   HTTP.Response ->
   Aff Unit
-handleExtRequest { route, router, notFoundHandler } req resp = do
+handleExtRequestNT { route, router, notFoundHandler } req resp = do
   httpurpleReq <- fromHTTPRequestExt route (Proxy :: Proxy ctx) req
   httpurpleResp <- (notFoundHandler ||| onError500 router) httpurpleReq
   send resp httpurpleResp
 
-handleExtRequestWithMiddleware ::
+handleExtRequestNTWithMiddleware ::
   forall input output outputRL thru route.
   Union output thru output =>
   RowToList output outputRL =>
   Extra.Keys outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
   { route :: RD.RouteDuplex' route
-  --, middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
-  , middleware :: NodeMiddlewareStack input output
-  , router :: ExtRequest route output -> ResponseM
+  , nodeMiddleware :: NodeMiddlewareStack input output
+  , router :: ExtRequestNT route output -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
   } ->
   HTTP.Request ->
   HTTP.Response ->
   Effect Unit
-handleExtRequestWithMiddleware { route, middleware: NodeMiddlewareStack middleware, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
+handleExtRequestNTWithMiddleware { route, nodeMiddleware: NodeMiddlewareStack middleware, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
   eff <- liftEffect $ flip runContT (coerce >>> pure) $ middleware (MiddlewareResult { request: req, response: resp, middlewareResult: NotCalled })
   executeHandler eff
   where
@@ -170,7 +170,7 @@ handleExtRequestWithMiddleware { route, middleware: NodeMiddlewareStack middlewa
   executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingFailed error }) =
     liftEffect $ handleRequestUnit (defaultMiddlewareErrorHandler error) request response
   executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingSucceeded }) =
-    handleExtRequest { route, router, notFoundHandler } request response
+    handleExtRequestNT { route, router, notFoundHandler } request response
   executeHandler (MiddlewareResult { middlewareResult: NotCalled }) =
     pure unit
 
@@ -235,7 +235,14 @@ serve inputOptions { route, router } = do
   let closingHandler = close server
   registerClosingHandler filledOptions.closingHandler closingHandler
 
-serveWithMiddleware ::
+asExtended
+  :: forall route ext m
+  . (ExtRequest route ext -> m Response)
+  -> ExtRequestNT route ext
+  -> m Response
+asExtended = lcmap unwrap
+
+serveExtended ::
   forall route from fromRL via missing missingList input output outputRL thru.
   RowToList missing missingList =>
   FillableFields missingList () missing =>
@@ -249,7 +256,7 @@ serveWithMiddleware ::
   { | from } ->
   ExtRoutingSettings route input output ->
   ServerM
-serveWithMiddleware inputOptions settings = do
+serveExtended inputOptions settings = do
   let
     filledOptions :: ListenOptions
     filledOptions = justifillListenOptions inputOptions
@@ -265,14 +272,15 @@ serveWithMiddleware inputOptions settings = do
       , backlog: filledOptions.backlog
       }
 
+    extendedSettings = settings { router = asExtended settings.router }
+
     routingSettings ::
       { route :: RD.RouteDuplex' route
-      --, middleware :: MiddlewareResult input -> ContT (MiddlewareResult output) Effect (MiddlewareResult input)
-      , middleware :: NodeMiddlewareStack input output
-      , router :: ExtRequest route output -> ResponseM
+      , nodeMiddleware :: NodeMiddlewareStack input output
+      , router :: ExtRequestNT route output -> ResponseM
       , notFoundHandler :: Request Unit -> ResponseM
       }
-    routingSettings = merge settings { notFoundHandler: fromMaybe defaultNotFoundHandler filledOptions.notFoundHandler }
+    routingSettings = merge extendedSettings { notFoundHandler: fromMaybe defaultNotFoundHandler filledOptions.notFoundHandler }
 
     sslOptions = { certFile: _, keyFile: _ } <$> filledOptions.certFile <*> filledOptions.keyFile
   server <- case sslOptions of
@@ -281,8 +289,8 @@ serveWithMiddleware inputOptions settings = do
         cert' <- readTextFile UTF8 certFile
         key' <- readTextFile UTF8 keyFile
         let sslOpts = key := keyString key' <> cert := certString cert'
-        HTTPS.createServer sslOpts (handleExtRequestWithMiddleware routingSettings)
-    Nothing -> HTTP.createServer (handleExtRequestWithMiddleware routingSettings)
+        HTTPS.createServer sslOpts (handleExtRequestNTWithMiddleware routingSettings)
+    Nothing -> HTTP.createServer (handleExtRequestNTWithMiddleware routingSettings)
   listen server options onStarted
   let closingHandler = close server
   registerClosingHandler filledOptions.closingHandler closingHandler
