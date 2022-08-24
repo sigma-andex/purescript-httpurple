@@ -59,8 +59,11 @@ type RequestR route r =
 -- | the different parts of the HTTP request.
 type Request route = { | RequestR route () }
 
+-- | Like `Request`, but can contain additional fields
 type ExtRequest route ext = { | RequestR route ext }
 
+-- | Newtype wrapping an extended request
+-- | For internal use only. Use `ExtRequest` instead.
 newtype ExtRequestNT :: Type -> Row Type -> Type
 newtype ExtRequestNT route ext = ExtRequestNT { | RequestR route ext }
 
