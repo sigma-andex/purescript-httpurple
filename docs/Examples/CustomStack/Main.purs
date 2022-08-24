@@ -42,7 +42,7 @@ sayHello _ = do
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { port: 8080, onStarted } { route, router: readerMiddleware sayHello }
+  serve { hostname: "localhost", port: 8080, onStarted } { route, router: readerMiddleware sayHello }
   where
   onStarted = do
     log " ┌───────────────────────────────────────┐"

@@ -27,7 +27,7 @@ router _ = notFound
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { port: 8080, onStarted } { route, router }
+  serve { hostname: "localhost", port: 8080, onStarted } { route, router }
   where
   onStarted = do
     log " ┌───────────────────────────────────────────┐"
