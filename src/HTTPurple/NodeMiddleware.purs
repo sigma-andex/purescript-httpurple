@@ -1,4 +1,16 @@
-module HTTPurple.NodeMiddleware where
+module HTTPurple.NodeMiddleware
+  ( MiddlewareResult(..)
+  , MiddlewareResultR
+  , NextHandlerArg
+  , NextInvocation(..)
+  , NodeMiddleware(..)
+  , NodeMiddlewareStack(..)
+  , usingMiddleware
+  , callNext
+  , callNextWithError
+  , class UsingMiddleware
+  , dontCallNext
+  ) where
 
 import Prelude
 
@@ -22,13 +34,13 @@ newtype NodeMiddleware extended =
 
 derive instance Newtype (NodeMiddleware extended) _
 
+data NextInvocation = NotCalled | ProcessingFailed Error | ProcessingSucceeded
+
 type MiddlewareResultR =
   (request :: HTTP.Request, response :: HTTP.Response, middlewareResult :: NextInvocation)
 
 newtype MiddlewareResult :: forall k. k -> Type
 newtype MiddlewareResult input = MiddlewareResult { | MiddlewareResultR }
-
-data NextInvocation = NotCalled | ProcessingFailed Error | ProcessingSucceeded
 
 derive instance Generic NextInvocation _
 instance Show NextInvocation where
