@@ -135,6 +135,21 @@ handleExtRequest { route, router, notFoundHandler } req resp = do
   httpurpleResp <- (notFoundHandler ||| onError500 router) httpurpleReq
   send resp httpurpleResp
 
+handleRequest ::
+  forall ctx ctxRL thru route.
+  Union ctx thru ctx =>
+  RowToList ctx ctxRL =>
+  Extra.Keys ctxRL =>
+  Nub (RequestR route ctx) (RequestR route ctx) =>
+  { route :: RD.RouteDuplex' route
+  , router :: ExtRequestNT route ctx -> ResponseM
+  , notFoundHandler :: Request Unit -> ResponseM
+  } ->
+  HTTP.Request ->
+  HTTP.Response ->
+  Effect Unit
+handleRequest settings request response = void $ runAff (\_ -> pure unit) $ handleExtRequest settings request response
+
 handleExtRequestWithMiddleware ::
   forall input output outputRL thru route.
   Union output thru output =>
@@ -142,17 +157,14 @@ handleExtRequestWithMiddleware ::
   Extra.Keys outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
   { route :: RD.RouteDuplex' route
-  , nodeMiddleware :: Maybe (NodeMiddlewareStack input output)
+  , nodeMiddleware :: NodeMiddlewareStack input output
   , router :: ExtRequestNT route output -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
   } ->
   HTTP.Request ->
   HTTP.Response ->
   Effect Unit
-
-handleExtRequestWithMiddleware { route, nodeMiddleware: Nothing, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $
-  handleExtRequest { route, router, notFoundHandler } req resp
-handleExtRequestWithMiddleware { route, nodeMiddleware: Just (NodeMiddlewareStack middleware), router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
+handleExtRequestWithMiddleware { route, nodeMiddleware: NodeMiddlewareStack middleware, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
   eff <- liftEffect $ flip runContT (coerce >>> pure) $ middleware (MiddlewareResult { request: req, response: resp, middlewareResult: NotCalled })
   executeHandler eff
   where
@@ -187,12 +199,12 @@ serveInternal ::
   Extra.Keys outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
   { | from } ->
+  Maybe (NodeMiddlewareStack input output) ->
   { route :: RD.RouteDuplex' route
-  , nodeMiddleware :: Maybe (NodeMiddlewareStack input output)
   , router :: ExtRequestNT route output -> ResponseM
   } ->
   ServerM
-serveInternal inputOptions settings = do
+serveInternal inputOptions maybeNodeMiddleware settings = do
   let
     filledOptions :: ListenOptions
     filledOptions = justifill inputOptions
@@ -210,6 +222,9 @@ serveInternal inputOptions settings = do
 
     routingSettings = merge settings { notFoundHandler: fromMaybe defaultNotFoundHandler filledOptions.notFoundHandler }
 
+    handler = case maybeNodeMiddleware of
+      Just nodeMiddleware -> handleExtRequestWithMiddleware $ merge routingSettings { nodeMiddleware }
+      Nothing -> handleRequest routingSettings
     sslOptions = { certFile: _, keyFile: _ } <$> filledOptions.certFile <*> filledOptions.keyFile
   server <- case sslOptions of
     Just { certFile, keyFile } ->
@@ -217,8 +232,8 @@ serveInternal inputOptions settings = do
         cert' <- readTextFile UTF8 certFile
         key' <- readTextFile UTF8 keyFile
         let sslOpts = key := keyString key' <> cert := certString cert'
-        HTTPS.createServer sslOpts (handleExtRequestWithMiddleware routingSettings)
-    Nothing -> HTTP.createServer (handleExtRequestWithMiddleware routingSettings)
+        HTTPS.createServer sslOpts handler
+    Nothing -> HTTP.createServer handler
   listen server options onStarted
   let closingHandler = close server
   registerClosingHandler filledOptions.closingHandler closingHandler
@@ -235,9 +250,9 @@ serve ::
   ServerM
 serve inputOptions { route, router } = do
   let
-    extendedSettings = { route, router: asExtended router, nodeMiddleware: Nothing }
+    extendedSettings = { route, router: asExtended router }
 
-  serveInternal inputOptions extendedSettings
+  serveInternal inputOptions Nothing extendedSettings
 
 serveNodeMiddleware ::
   forall route from fromRL via missing missingList input output outputRL thru.
@@ -255,9 +270,9 @@ serveNodeMiddleware ::
   ServerM
 serveNodeMiddleware inputOptions { route, router, nodeMiddleware } = do
   let
-    extendedSettings = { route, router: asExtended router, nodeMiddleware: Just nodeMiddleware }
+    extendedSettings = { route, router: asExtended router }
 
-  serveInternal inputOptions extendedSettings
+  serveInternal inputOptions (Just nodeMiddleware) extendedSettings
 
 registerClosingHandler :: Maybe ClosingHandler -> (Effect Unit -> Effect Unit) -> ServerM
 registerClosingHandler (Just NoClosingHandler) closingHandler = pure closingHandler
