@@ -147,10 +147,6 @@ handleExtRequest { route, router, notFoundHandler } req resp = do
   httpurpleResp <- (notFoundHandler ||| onError500 router) httpurpleReq
   send resp httpurpleResp
 
--- handleRequest { route, router, notFoundHandler } request httpresponse =
---   void $ runAff (\_ -> pure unit) $ fromHTTPRequest route request
---     >>= (notFoundHandler ||| onError500 router)
---     >>= send httpresponse
 handleExtRequestWithMiddleware ::
   forall input output outputRL thru route.
   Union output thru output =>
@@ -184,16 +180,6 @@ handleExtRequestWithMiddleware { route, nodeMiddleware:Just (NodeMiddlewareStack
 defaultNotFoundHandler :: forall route. Request route -> ResponseM
 defaultNotFoundHandler = const notFound
 
-justifillListenOptions ::
-  forall from fromRL via missing missingList.
-  RowToList missing missingList =>
-  FillableFields missingList () missing =>
-  Union via missing (ListenOptionsR) =>
-  RowToList from fromRL =>
-  JustifiableFields fromRL from () via =>
-  { | from } ->
-  ListenOptions
-justifillListenOptions = justifill
 
 -- | Given a `ListenOptions` and a `RoutingSettings`, creates and
 -- | runs a HTTPurple server.
@@ -210,7 +196,7 @@ serve ::
 serve inputOptions { route, router } = do
   let
     filledOptions :: ListenOptions
-    filledOptions = justifillListenOptions inputOptions
+    filledOptions = justifill inputOptions
 
     hostname = fromMaybe defaultHostname filledOptions.hostname
     port = fromMaybe defaultPort filledOptions.port
@@ -266,7 +252,7 @@ serveExtended ::
 serveExtended inputOptions settings = do
   let
     filledOptions :: ListenOptions
-    filledOptions = justifillListenOptions inputOptions
+    filledOptions = justifill inputOptions
 
     hostname = fromMaybe defaultHostname filledOptions.hostname
     port = fromMaybe defaultPort filledOptions.port
