@@ -80,7 +80,7 @@ middlewareStack = loggingMiddleware <<< headerMiddleware <<< pathMiddleware
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { port: 8080, onStarted } { route: middlewareRoute <+> sayHelloRoute, router: middlewareStack sayHello }
+  serve { hostname: "localhost", port: 8080, onStarted } { route: middlewareRoute <+> sayHelloRoute, router: middlewareStack sayHello }
   where
   onStarted = do
     log " ┌───────────────────────────────────────┐"

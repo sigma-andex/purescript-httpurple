@@ -35,7 +35,7 @@ sayHello _ = ok "hello world!"
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { port: 8080, certFile: cert, keyFile: key, onStarted } { route, router: sayHello }
+  serve { hostname: "localhost", port: 8080, certFile: cert, keyFile: key, onStarted } { route, router: sayHello }
   where
   onStarted =
     do

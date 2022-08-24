@@ -46,7 +46,7 @@ testEncoder = JsonEncoder $ \{ hello } -> "{\"hello\": \"" <> hello <> "\" }"
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { port: 8080, onStarted } { route, router }
+  serve { hostname: "localhost", port: 8080, onStarted } { route, router }
   where
   router { route: SayHello, method: Post, body } = usingCont do
     -- in your project you will want to use Argonaut.jsonDecoder from httpurple-argonaut
