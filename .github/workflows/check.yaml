@@ -39,6 +39,7 @@ jobs:
         run: purs-tidy check src test
 
       - name: Verify Bower & Pulp
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           npm install bower pulp@16.0.0
           npx bower install
