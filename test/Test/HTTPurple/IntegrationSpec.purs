@@ -167,7 +167,7 @@ sslSpec =
 
 extensibleMiddlewareSpec :: Test
 extensibleMiddlewareSpec =
-  it "runs the middleware example" do
+  it "runs the extensible middleware example" do
     close <- liftEffect ExtensibleMiddleware.main
     let headers = Object.singleton "X-Token" "123"
     body <- get 8080 headers "/"
@@ -178,7 +178,7 @@ extensibleMiddlewareSpec =
 
 nodeMiddlewareSpec :: Test
 nodeMiddlewareSpec =
-  it "runs the middleware example" do
+  it "runs the node middleware example" do
     close <- liftEffect NodeMiddleware.main
     let headers = Object.singleton "X-Token" "123"
     body <- get 8080 headers "/"
