@@ -4,6 +4,15 @@
 - Separate `Headers` into `RequestHeaders` and `ResponseHeaders`
 - Allow passing a record to `headers` to make `ResponseHeaders` easier
 
+## v3.0.0
+- Make requests extensible, which allows middlewares to pass data to the handler (e.g. user information from an authentication middleware)
+- Support Node/express middlewares
+
+## v2.0.0
+- Split headers into request and response headers
+- Allow multiple response headers (e.g. `Set-Cookie`)
+- Simplify headers creation
+
 ## v1.3.0
 
 - Add `catchAll` route
