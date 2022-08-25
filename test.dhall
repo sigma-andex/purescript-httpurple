@@ -12,5 +12,7 @@ in conf // {
   , "transformers"
   , "unsafe-coerce" 
   , "typelevel-prelude"
+  , "js-date"
+  , "nullable"
   ]
 }

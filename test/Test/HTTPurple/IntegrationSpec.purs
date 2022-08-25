@@ -2,26 +2,32 @@ module Test.HTTPurple.IntegrationSpec where
 
 import Prelude
 
+import Control.Monad.Trans.Class (lift)
+import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
 import Examples.AsyncResponse.Main as AsyncResponse
 import Examples.BinaryRequest.Main as BinaryRequest
 import Examples.BinaryResponse.Main as BinaryResponse
 import Examples.Chunked.Main as Chunked
 import Examples.CustomStack.Main as CustomStack
+import Examples.ExtensibleMiddleware.Main as ExtensibleMiddleware
 import Examples.Headers.Main as Headers
 import Examples.HelloWorld.Main as HelloWorld
 import Examples.JsonParsing.Main as JsonParsing
 import Examples.Middleware.Main as Middleware
 import Examples.MultiRoute.Main as MultiRoute
+import Examples.NodeMiddleware.Main as NodeMiddleware
 import Examples.PathSegments.Main as PathSegments
 import Examples.Post.Main as Post
 import Examples.QueryParameters.Main as QueryParameters
 import Examples.SSL.Main as SSL
 import Foreign.Object (empty, singleton)
+import Foreign.Object as Object
 import Node.Buffer (toArray)
 import Node.FS.Aff (readFile)
 import Test.HTTPurple.TestHelpers (Test, get, get', getBinary, getHeader, post, postBinary, (?=))
-import Test.Spec (describe, it)
+import Test.Spec (Tree(..), describe, it)
+import Test.Spec.Assertions.String (shouldStartWith)
 
 asyncResponseSpec :: Test
 asyncResponseSpec =
@@ -159,6 +165,28 @@ sslSpec =
     liftEffect $ close $ pure unit
     response ?= "hello world!"
 
+extensibleMiddlewareSpec :: Test
+extensibleMiddlewareSpec =
+  it "runs the middleware example" do
+    close <- liftEffect ExtensibleMiddleware.main
+    let headers = Object.singleton "X-Token" "123"
+    body <- get 8080 headers "/"
+    body' <- get 8080 empty "/"
+    liftEffect $ close $ pure unit
+    body `shouldStartWith` "hello John Doe, it is"
+    body' `shouldStartWith` "hello anonymous, it is"
+
+nodeMiddlewareSpec :: Test
+nodeMiddlewareSpec =
+  it "runs the middleware example" do
+    close <- liftEffect NodeMiddleware.main
+    let headers = Object.singleton "X-Token" "123"
+    body <- get 8080 headers "/"
+    body' <- get 8080 empty "/"
+    liftEffect $ close $ pure unit
+    body `shouldStartWith` "hello John Doe"
+    body' `shouldStartWith` "hello anonymous"
+
 integrationSpec :: Test
 integrationSpec =
   describe "Integration" do
@@ -176,3 +204,5 @@ integrationSpec =
     queryParametersSpec
     sslSpec
     jsonParsingSpec
+    extensibleMiddlewareSpec
+    nodeMiddlewareSpec
