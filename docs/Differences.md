@@ -79,6 +79,15 @@ main = serve { port: 8080 } { route: api, router: apiRouter }
     Nothing -> "defaulting to ascending"
 ```
 
+## Extensible requests and node middlewares
+
+In HTTPurple 🪁 requests are extensible records, so you can add data to the request. This is particularly useful when implementing middlewares that e.g. add user information to the incoming requets. 
+
+Furthermore, HTTPurple 🪁 adds support for (application-level) node/express middlewares.
+
+See [`Middleware.md`](./Middleware.md) for more information.
+
+
 ## Startup options
 
 HTTPurple 🪁 greatly simplifies the startup options and functions. The `serve`, `serve'`, `serveSecure` and `serveSecure'` have been merged into a single function `serve` that accepts listen options as the first parameter and uses sane defaults if you don't provide any.

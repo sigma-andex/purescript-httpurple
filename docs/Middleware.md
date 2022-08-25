@@ -1,6 +1,6 @@
-# Writing and Using Middleware in HTTPure
+# Writing and Using Middleware in HTTPurple 🪁 
 
-Since HTTPure routers are just pure functions, you can write a middleware by
+Since HTTPurple 🪁 routers are just pure functions, you can write a middleware by
 simply creating a function that takes a router and an `HTTPure.Request`, and
 returns an `HTTPure.ResponseM`. You can then simply use function composition to
 combine middlewares, and pass your router to your composed middleware to
@@ -8,6 +8,12 @@ generate the decorated router!
 
 See [the Middleware example](./Examples/Middleware/Main.purs) to see how you can
 build, compose, and consume different types of middleware.
+
+🎉 **New:** 
+
+HTTPurple 🪁 now supports extensible middlewares that allows you to add further data to your request, see [Extensible Middlewares](#extensible-middlewares).
+
+HTTPurple 🪁 now supports Node.js/Express middlewares, see [Node.js Middlewares](#node-middlewares).
 
 ## Writing Middleware
 
@@ -83,7 +89,7 @@ router in each successive middleware from right to left. So when the router
 executes on a request, those middlewares will actually _execute_
 left-to-right--or from the outermost wrapper inwards.
 
-In other words, say you have the following HTTPure server:
+In other words, say you have the following HTTPurple 🪁 server:
 
 ```purescript
 middleware letter router request = do
@@ -97,7 +103,7 @@ main = HTTPure.serve port composedRouter $ Console.log "Server is up!"
     composedRouter = middleware "A" <<< middleware "B" $ router
 ```
 
-When this HTTPure server receives a request, the logs will include:
+When this HTTPurple 🪁 server receives a request, the logs will include:
 
 ```
 Starting Middleware A
@@ -106,3 +112,186 @@ Starting Middleware B
 Ending Middleware B
 Ending Middleware A
 ```
+
+## Extensible Middlewares
+
+The base type for requests, `ExtRequest` is now extensible:
+```purescript
+type RequestR route ext =
+  ( method :: Method
+  , path :: Path
+  , query :: Query
+  , route :: route
+  , headers :: RequestHeaders
+  , body :: RequestBody
+  , httpVersion :: Version
+  , url :: String
+  | ext
+  )
+type ExtRequest route ext = { | RequestR route ext }
+```
+and the old `Request` is just a type alias for an extensible request without any further data:
+```purescript
+type Request route = { | RequestR route () }
+```
+
+This allows us to write middlewares that extend our request with additional information.
+
+E.g. we can write an authenticator middleware that adds user information to the request:
+```purescript
+authenticator ::
+  forall route extIn extOut.
+  Nub (RequestR route extOut) (RequestR route extOut) =>
+  Union extIn (user :: Maybe String) extOut =>
+  Middleware route extIn extOut
+authenticator router request@{ headers } = case Headers.lookup headers "X-Token" of
+  Just token | token == "123" -> router $ merge request { user: Just "John Doe" }
+  _ -> router $ merge request { user: Nothing :: Maybe String }
+```
+The type `Middleware` is defined as 
+```purescript
+type MiddlewareM m route extIn extOut = (ExtRequest route extOut -> m Response) -> ExtRequest route extIn -> m Response
+type Middleware route extIn extOut = MiddlewareM Aff route extIn extOut
+```
+and adds the `extOut` extension to our request handler. In our case, it adds `(user :: Maybe String)` to the request handler. `extIn` defines the input extension that the middleware receives. At the root level, this will be an empty row `()` (unless we use a node middleware).
+Not fixing `extIn` to `()` however allows us to stack our middlewars.
+
+Let's add another middleware, that adds the request time to the request:
+```purescript
+requestTime ::
+  forall route extIn extOut.
+  Nub (RequestR route extOut) (RequestR route extOut) =>
+  Union extIn (time :: JSDate) extOut =>
+  Middleware route extIn extOut
+requestTime router request = do
+  time <- liftEffect JSDate.now
+  router $ merge request { time }
+```
+Similar to the `authenticator` middleware, we add a new field `time` to the request.
+
+We can now compose our middleware stack:
+```purescript
+middlewareStack :: forall route. (ExtRequest route (user :: Maybe String, time :: JSDate) -> ResponseM) -> Request route -> ResponseM
+middlewareStack = authenticator <<< requestTime
+```
+
+We can now use our middleware stack. Let's define a simple route:
+```purescript
+data SayHello = SayHello
+
+derive instance Generic SayHello _
+
+sayHelloRoute :: RD.RouteDuplex' SayHello
+sayHelloRoute = RD.root $ RG.sum
+  { "SayHello": RG.noArgs
+  }
+```
+
+and a router that makes use of our newly added information:
+```purescript
+-- | Say 'hello <USER>' when run with X-Token, otherwise 'hello anonymous'
+sayHello :: ExtRequest SayHello (user :: Maybe String, time :: JSDate) -> ResponseM
+sayHello { user: Just user, time } = ok $ "hello " <> user <> ", it is " <> JSDate.toDateString time <> " " <> JSDate.toTimeString time
+sayHello { user: Nothing, time } = ok $ "hello " <> "anonymous, it is " <> JSDate.toDateString time <> " " <> JSDate.toTimeString time
+```
+As you can see, we are now using an `ExtRequest` with the additional information `(user :: Maybe String, time :: JSDate)`, which we can use in our function body.
+
+Finally, we wrap our `sayHello` router with our `middlewareStack`:
+
+```purescript
+main =
+  serve { hostname: "localhost", port: 8080 } { route: sayHelloRoute, router: middlewareStack sayHello }
+```
+
+See the full example in the [`Examples/ExtensibleMiddleware`](./Examples/ExtensibleMiddleware/) folder.
+
+
+## Node Middlewares
+
+Node/Express middlewares are no supported, but currently only on the application level (i.e. they will be run on every request).
+
+For our example, we'll use two existing node middlewares, and one custom node middleware.
+The first one is `morgan`, which adds logging to our http server.
+Install it using 
+```bash
+npm install morgan --save
+```
+
+To use it, we create a FFI and export it as `morgan`
+```javascript
+import { default as M } from "morgan";
+export const morgan = M("tiny")
+```
+
+Now we can define the foreign import in our Purescript file:
+```purescript
+foreign import morgan :: NodeMiddleware ()
+```
+The empty row `()` indicates, that this middleware doesn't add any information to our request.
+
+Next, we'll add `helmet` which adds some security headers to our response.
+
+```bash
+npm install helmet --save
+```
+
+Add it to our ffi
+```javascript
+import { default as H } from "helmet";
+export const helmet = H()
+```
+and define the foreign import
+```purescript
+foreign import helmet :: NodeMiddleware ()
+```
+
+Finally, let's define a small node middleware that adds something to our request. Add a simple authenticating middleware to our ffi:
+
+```javascript
+export const authenticator = function (req, res, next) {
+  if(req.headers["x-token"] == "123") {
+    req.user = "John Doe" 
+  } else {
+    req.user = null
+  }
+  next();
+};
+```
+If the middleware receives the http header `x-token` with value `123`, it will add the user, otherwise `null`.
+
+Our foreign import now looks like this:
+```purescript
+type AuthenticatorR = (user :: Nullable String)
+
+foreign import authenticator :: NodeMiddleware (user :: Nullable String)
+```
+Our node middleware extends requests with `(user :: Nullable String)`.
+
+We can now compose our middlewares into a single `NodeMiddlewareStack`:
+```purescript
+nodeMiddleware ∷ NodeMiddlewareStack () AuthenticatorR
+nodeMiddleware = NodeMiddlewareStack $ usingMiddleware morgan >=> usingMiddleware helmet >=> usingMiddleware authenticator
+```
+
+Let's define a simple route with a handler, that makes use of our node middleware:
+```purescript
+data Route = Hello
+
+derive instance Generic Route _
+
+route :: RouteDuplex' Route
+route = mkRoute
+  { "Hello": noArgs
+  }
+
+main :: ServerM
+main =
+  serveNodeMiddleware { port: 8080 } { route, router: router, nodeMiddleware }
+  where
+  router { route: Hello, user } = case Nullable.toMaybe user of
+    Just u -> ok $ "hello user " <> u
+    Nothing -> ok $ "hello anonymous"
+```
+Note, that we have to use `serveNodeMiddleware` instead of `serve` and pass the `nodeMiddleware` along the `route` and `router`. In the router, we gain access to the nullable user. 
+
+You can see a full example of node middlewares in the [`Examples/NodeMiddleware`](./Examples/NodeMiddleware/) folder.
