@@ -21,6 +21,7 @@ This project was originally forked from the amazing [HTTPure](https://github.com
 * λ fp-style http server & request handlers
 * 🛣 Powerful & type-safe routing dsl
 * 🕵🏻‍♂️ Easy json parsing and data validation
+* 🥪 Supports Node/Express middlewares
 * 📜 Extensive documentation & examples
 
 
