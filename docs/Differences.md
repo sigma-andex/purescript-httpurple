@@ -4,6 +4,7 @@ HTTPurple 🪁 is a fork of [HTTPure](https://github.com/citizennet/purescript-h
 
 If you have used HTTPure before, you'll probably want to go through the following changes to get started using HTTPurple 🪁:
 * [routing-duplex](#routing-duplex)
+* [Extensible requests and node middlewares](#extensible-requests-and-node-middlewares)
 * [startup options](#startup-options)
 * [request parsing and validation](#request-parsing-and-validation)
 * [other improvements](#other-improvmenets)

@@ -41,6 +41,6 @@ jobs:
       - name: Verify Bower & Pulp
         if: ${{ github.ref == 'refs/heads/main' }}
         run: |
-          npm install bower pulp@16.0.0
+          npm install bower pulp@16.0.1
           npx bower install
           npx pulp build -- --censor-lib --strict

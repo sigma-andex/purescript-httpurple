@@ -3,9 +3,11 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/sigma-andex/purescript-httpurple/main/License)
 [![purescript-httpurple on Pursuit](https://pursuit.purescript.org/packages/purescript-httpurple/badge)](https://pursuit.purescript.org/packages/purescript-httpurple)
 
-A functional http framework with a focus on type-safety and making the common case easy. 
+A functional http server with a focus on type-safety and making the common case easy. 
 
-This project was originally forked from the amazing [HTTPure](https://github.com/citizennet/purescript-httpure) http server framework, but has since deviated quite a bit. If you are coming from HTTPure you might want to have a look at the [differences to HTTPure](./docs/Differences.md).
+**Note:** If you are looking for a http client, check out [`purescript-fetch`](https://github.com/rowtype-yoga/purescript-fetch)
+
+**Note**: This project was originally forked from the amazing [HTTPure](https://github.com/citizennet/purescript-httpure) http server framework, but has since deviated quite a bit. If you are coming from HTTPure you might want to have a look at the [differences to HTTPure](./docs/Differences.md).
 
 ## ToC
 1. [Features](#features)
