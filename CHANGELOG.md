@@ -1,8 +1,6 @@
 # Changelog
 
 ## Unpublished
-- Separate `Headers` into `RequestHeaders` and `ResponseHeaders`
-- Allow passing a record to `headers` to make `ResponseHeaders` easier
 
 ## v3.0.0
 - Make requests extensible, which allows middlewares to pass data to the handler (e.g. user information from an authentication middleware)
