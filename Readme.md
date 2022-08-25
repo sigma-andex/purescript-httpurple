@@ -89,6 +89,7 @@ See the [docs folder](./docs) for the in-depth guides.
 * [Routing](./docs/Routing.md) - Explanation of the routing dsl
 * [Requests](./docs/Requests.md) - Guide to request handling
 * [Response](./docs/Responses.md) - Guide to response handling
+* [Middleware](./docs/Middleware.md) - Guide to HTTPurple and Node.js middlewares
 * [Differences](./docs/Differences.md) - A detailed description of the differences to HTTPure
 
 ## Examples
