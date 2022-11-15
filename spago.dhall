@@ -29,6 +29,7 @@
   , "prelude"
   , "profunctor"
   , "record"
+  , "record-studio"
   , "refs"
   , "routing-duplex"
   , "safe-coerce"

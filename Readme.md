@@ -115,4 +115,3 @@ spago -x test.dhall test
 ## License
 
 This is a fork of [HTTPure](https://github.com/citizennet/purescript-httpure), which is licensed under MIT. See the [original license](./LICENSES/httpure.LICENSE). This work is similarly licensed under [MIT](./License).
-It includes part of [`purescript-record-extra`](https://github.com/justinwoo/purescript-record-extra) as an inline dependency, which is licensed under MIT, see [original license](./LICENSES/record-extra.LICENSE).
