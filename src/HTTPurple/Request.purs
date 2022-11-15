@@ -29,8 +29,6 @@ import HTTPurple.Path (Path)
 import HTTPurple.Path (read) as Path
 import HTTPurple.Query (Query)
 import HTTPurple.Query (read) as Query
-import HTTPurple.Record.Extra (pick)
-import HTTPurple.Record.Extra as Extra
 import HTTPurple.Utils (encodeURIComponent)
 import HTTPurple.Version (Version)
 import HTTPurple.Version (read) as Version
@@ -39,6 +37,8 @@ import Node.HTTP (requestURL)
 import Prim.Row (class Nub, class Union)
 import Prim.RowList (class RowToList)
 import Record (merge)
+import Record.Studio (shrink)
+import Record.Studio.Keys (class Keys)
 import Routing.Duplex as RD
 import Type.Prelude (Proxy)
 import Unsafe.Coerce (unsafeCoerce)
@@ -110,7 +110,7 @@ fromHTTPRequestExt ::
   Union ctx thru ctx =>
   Nub (RequestR route ctx) (RequestR route ctx) =>
   RowToList ctx ctxRL =>
-  Extra.Keys ctxRL =>
+  Keys ctx =>
   RD.RouteDuplex' route ->
   Proxy ctx ->
   HTTP.Request ->
@@ -118,7 +118,7 @@ fromHTTPRequestExt ::
 fromHTTPRequestExt route _ nodeRequest = do
   let
     extension :: Record ctx
-    extension = pick (unsafeCoerce nodeRequest :: Record ctx)
+    extension = shrink (unsafeCoerce nodeRequest :: Record ctx)
 
     addExtension :: Request route -> ExtRequestNT route ctx
     addExtension = flip merge extension >>> ExtRequestNT

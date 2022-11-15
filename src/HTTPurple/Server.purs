@@ -28,7 +28,6 @@ import Effect.Class.Console (log)
 import Effect.Console (error)
 import Effect.Exception (Error)
 import HTTPurple.NodeMiddleware (MiddlewareResult(..), NextInvocation(..), NodeMiddlewareStack(..))
-import HTTPurple.Record.Extra as Extra
 import HTTPurple.Request (ExtRequest, ExtRequestNT, Request, RequestR, fromHTTPRequestExt, fromHTTPRequestUnit)
 import HTTPurple.Response (Response, ResponseM, internalServerError, notFound, send)
 import Justifill (justifill)
@@ -44,6 +43,7 @@ import Node.Process (onSignal)
 import Prim.Row (class Nub, class Union)
 import Prim.RowList (class RowToList)
 import Record (merge)
+import Record.Studio.Keys (class Keys, class KeysRL)
 import Routing.Duplex as RD
 import Safe.Coerce (coerce)
 import Type.Prelude (Proxy(..))
@@ -121,7 +121,7 @@ handleExtRequest ::
   forall ctx ctxRL thru route.
   Union ctx thru ctx =>
   RowToList ctx ctxRL =>
-  Extra.Keys ctxRL =>
+  Keys ctx =>
   Nub (RequestR route ctx) (RequestR route ctx) =>
   { route :: RD.RouteDuplex' route
   , router :: ExtRequestNT route ctx -> ResponseM
@@ -139,7 +139,7 @@ handleRequest ::
   forall ctx ctxRL thru route.
   Union ctx thru ctx =>
   RowToList ctx ctxRL =>
-  Extra.Keys ctxRL =>
+  Keys ctx =>
   Nub (RequestR route ctx) (RequestR route ctx) =>
   { route :: RD.RouteDuplex' route
   , router :: ExtRequestNT route ctx -> ResponseM
@@ -154,7 +154,7 @@ handleExtRequestWithMiddleware ::
   forall input output outputRL thru route.
   Union output thru output =>
   RowToList output outputRL =>
-  Extra.Keys outputRL =>
+  Keys output =>
   Nub (RequestR route output) (RequestR route output) =>
   { route :: RD.RouteDuplex' route
   , nodeMiddleware :: NodeMiddlewareStack input output
@@ -196,7 +196,7 @@ serveInternal ::
   JustifiableFields fromRL from () via =>
   Union output thru output =>
   RowToList output outputRL =>
-  Extra.Keys outputRL =>
+  KeysRL outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
   { | from } ->
   Maybe (NodeMiddlewareStack input output) ->
@@ -263,7 +263,7 @@ serveNodeMiddleware ::
   JustifiableFields fromRL from () via =>
   Union output thru output =>
   RowToList output outputRL =>
-  Extra.Keys outputRL =>
+  KeysRL outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
   { | from } ->
   ExtRoutingSettings route input output ->
