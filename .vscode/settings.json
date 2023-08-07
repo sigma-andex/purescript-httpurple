@@ -1,0 +1,3 @@
+{
+  "purescript.buildCommand": "spago -x test.dhall build --purs-args --json-errors"
+}

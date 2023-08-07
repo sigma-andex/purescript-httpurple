@@ -12,7 +12,8 @@ import Data.String (Pattern(Pattern), joinWith, split)
 import Data.Tuple (Tuple(Tuple))
 import Foreign.Object (Object, fromFoldable)
 import HTTPurple.Utils (replacePlus, urlDecode)
-import Node.HTTP (Request, requestURL)
+import Node.HTTP.IncomingMessage (url)
+import Node.HTTP.Types (IMServer, IncomingMessage)
 
 -- | The `Query` type is a `Object` of `Strings`, with one entry per query
 -- | parameter in the request. For any query parameters that don't have values
@@ -25,8 +26,8 @@ import Node.HTTP (Request, requestURL)
 type Query = Object String
 
 -- | The `Map` of query segments in the given HTTP `Request`.
-read :: Request -> Query
-read = requestURL >>> split' "?" >>> last >>> split' "&" >>> nonempty >>> toObject
+read :: IncomingMessage IMServer -> Query
+read = url >>> split' "?" >>> last >>> split' "&" >>> nonempty >>> toObject
   where
   toObject = map toTuple >>> fromFoldable
   nonempty = filter ((/=) "")

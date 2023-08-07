@@ -71,14 +71,15 @@ module HTTPurple.Status
 import Prelude
 
 import Effect (Effect)
-import Node.HTTP (Response, setStatusCode)
+import Node.HTTP.ServerResponse (setStatusCode)
+import Node.HTTP.Types (ServerResponse)
 
 -- | The `Status` type enumerates all valid HTTP response status codes.
 type Status = Int
 
 -- | Write a status to a given HTTP `Response`.
-write :: Response -> Status -> Effect Unit
-write = setStatusCode
+write :: ServerResponse -> Status -> Effect Unit
+write = flip setStatusCode
 
 ---------
 -- 1xx --

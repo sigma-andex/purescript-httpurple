@@ -5,7 +5,8 @@ module HTTPurple.Method
 
 import Prelude
 
-import Node.HTTP (Request, requestMethod)
+import Node.HTTP.IncomingMessage (method)
+import Node.HTTP.Types (IMServer, IncomingMessage)
 
 -- | These are the HTTP methods that HTTPurple understands.
 data Method
@@ -35,8 +36,8 @@ instance showMethod :: Show Method where
   show Patch = "Patch"
 
 -- | Take an HTTP `Request` and extract the `Method` for that request.
-read :: Request -> Method
-read = requestMethod >>> case _ of
+read :: IncomingMessage IMServer -> Method
+read = method >>> case _ of
   "POST" -> Post
   "PUT" -> Put
   "DELETE" -> Delete

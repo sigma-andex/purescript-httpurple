@@ -29,7 +29,10 @@ import Data.Tuple (Tuple(Tuple))
 import Effect (Effect)
 import Foreign.Object (fold)
 import HTTPurple.Lookup (class Lookup, (!!))
-import Node.HTTP (Request, Response, requestHeaders, setHeaders)
+import Node.HTTP.IncomingMessage as IM
+import Node.HTTP.OutgoingMessage (setHeader')
+import Node.HTTP.ServerResponse (toOutgoingMessage)
+import Node.HTTP.Types (IMServer, IncomingMessage, ServerResponse)
 import Prim.Row as Row
 import Prim.RowList (class RowToList, Cons, Nil)
 import Record as Record
@@ -84,17 +87,18 @@ instance Eq ResponseHeaders where
   eq (ResponseHeaders a) (ResponseHeaders b) = eq a b
 
 -- | Get the headers out of a HTTP `RequestHeaders` object.
-read :: Request -> RequestHeaders
-read = requestHeaders >>> fold insertField Map.empty >>> RequestHeaders
+read :: IncomingMessage IMServer -> RequestHeaders
+read = IM.headers >>> fold insertField Map.empty >>> RequestHeaders
   where
   insertField x key value = insert (CaseInsensitiveString key) value x
 
 -- | Given an HTTP `Response` and a `ResponseHeaders` object, return an effect that will
 -- | write the `ResponseHeaders` to the `Response`.
-write :: Response -> ResponseHeaders -> Effect Unit
+write :: ServerResponse -> ResponseHeaders -> Effect Unit
 write response (ResponseHeaders headers') = void $ traverseWithIndex writeField headers'
   where
-  writeField key values = setHeaders response (unwrap key) values
+  om = toOutgoingMessage response
+  writeField key values = om # setHeader' (unwrap key) values
 
 -- | Return a `ResponseHeaders` containing no headers.
 empty :: ResponseHeaders

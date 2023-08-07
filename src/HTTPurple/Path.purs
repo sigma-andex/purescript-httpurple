@@ -9,7 +9,8 @@ import Data.Array (filter, head)
 import Data.Maybe (fromMaybe)
 import Data.String (Pattern(Pattern), split)
 import HTTPurple.Utils (urlDecode)
-import Node.HTTP (Request, requestURL)
+import Node.HTTP.IncomingMessage (url)
+import Node.HTTP.Types (IMServer, IncomingMessage)
 
 -- | The `Path` type is just sugar for an `Array` of `String` segments that are
 -- | sent in a request and indicates the path of the resource being requested.
@@ -20,8 +21,8 @@ import Node.HTTP (Request, requestURL)
 type Path = Array String
 
 -- | Given an HTTP `Request` object, extract the `Path`.
-read :: Request -> Path
-read = requestURL >>> split' "?" >>> first >>> split' "/" >>> nonempty >>> map urlDecode
+read :: IncomingMessage IMServer -> Path
+read = url >>> split' "?" >>> first >>> split' "/" >>> nonempty >>> map urlDecode
   where
   nonempty = filter ((/=) "")
   split' = Pattern >>> split

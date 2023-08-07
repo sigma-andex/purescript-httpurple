@@ -6,7 +6,6 @@ in conf // {
   , "exceptions"
   , "lists"
   , "node-child-process"
-  , "node-fs-aff"
   , "spec"
   , "debug"
   , "transformers"

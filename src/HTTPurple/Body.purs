@@ -18,14 +18,19 @@ import Effect.Aff (Aff, makeAff, nonCanceler)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
-import Effect.Ref (modify, new, read, write) as Ref
+import Effect.Ref (new, read, write) as Ref
 import HTTPurple.Headers (RequestHeaders, mkRequestHeader)
-import Node.Buffer (Buffer, concat, fromString, size)
-import Node.Buffer (toString) as Buffer
+import Node.Buffer (Buffer, fromString, size)
+import Node.Buffer (concat, toString) as Buffer
 import Node.Encoding (Encoding(UTF8))
-import Node.HTTP (Request, Response, requestAsStream, responseAsStream)
-import Node.Stream (Readable, Stream, end, onData, onEnd, pipe, writeString)
-import Node.Stream (write) as Stream
+import Node.EventEmitter (once_)
+import Node.HTTP.IncomingMessage as IM
+import Node.HTTP.OutgoingMessage as OM
+import Node.HTTP.ServerResponse as SR
+import Node.HTTP.Types (IMServer, IncomingMessage, ServerResponse)
+import Node.Stream (Readable, Stream, end', pipe, writeString')
+import Node.Stream (endH, write') as Stream
+import Node.Stream.Aff (readableToBuffers)
 import Type.Equality (class TypeEquals, to)
 
 type RequestBody =
@@ -35,13 +40,13 @@ type RequestBody =
   }
 
 -- | Read the body `Readable` stream out of the incoming request
-read :: Request -> Effect RequestBody
+read :: IncomingMessage IMServer -> Effect RequestBody
 read request = do
   buffer <- Ref.new Nothing
   string <- Ref.new Nothing
   pure
     { buffer
-    , stream: requestAsStream request
+    , stream: IM.toReadable request
     , string
     }
 
@@ -75,22 +80,12 @@ toBuffer requestBody = do
       $ Ref.read requestBody.buffer
   case maybeBuffer of
     Nothing -> do
-      buffer <- streamToBuffer requestBody.stream
-      liftEffect
-        $ Ref.write (Just buffer) requestBody.buffer
-      pure buffer
+      buffers <- liftAff $ readableToBuffers requestBody.stream
+      liftEffect do
+        buffer <- Buffer.concat buffers
+        Ref.write (Just buffer) requestBody.buffer
+        pure buffer
     Just buffer -> pure buffer
-  where
-  -- | Slurp the entire `Readable` stream into a `Buffer`
-  streamToBuffer :: MonadAff m => Readable () -> m Buffer
-  streamToBuffer stream =
-    liftAff $ makeAff \done -> do
-      bufs <- Ref.new []
-      onData stream \buf -> void $ Ref.modify (_ <> [ buf ]) bufs
-      onEnd stream do
-        body <- Ref.read bufs >>= concat
-        done $ Right body
-      pure nonCanceler
 
 -- | Return the `Readable` stream directly from `RequestBody`
 toStream :: RequestBody -> Readable ()
@@ -106,7 +101,7 @@ class Body b where
   defaultHeaders :: b -> Effect RequestHeaders
   -- | Given a body value and a Node HTTP `Response` value, write the body value
   -- | to the Node response.
-  write :: b -> Response -> Aff Unit
+  write :: b -> ServerResponse -> Aff Unit
 
 -- | The instance for `String` will convert the string to a buffer first in
 -- | order to determine it's additional headers.  This is to ensure that the
@@ -118,8 +113,8 @@ instance Body String where
     buf :: Buffer <- fromString body UTF8
     defaultHeaders buf
   write body response = makeAff \done -> do
-    let stream = responseAsStream response
-    void $ writeString stream UTF8 body $ const $ end stream $ const $ done $ Right unit
+    let stream = OM.toWriteable $ SR.toOutgoingMessage response
+    void $ writeString' stream UTF8 body $ const $ end' stream $ const $ done $ Right unit
     pure nonCanceler
 
 -- | The instance for `Buffer` is trivial--we add a `Content-Length` header
@@ -128,8 +123,8 @@ instance Body String where
 instance Body Buffer where
   defaultHeaders buf = mkRequestHeader "Content-Length" <$> show <$> size buf
   write body response = makeAff \done -> do
-    let stream = responseAsStream response
-    void $ Stream.write stream body $ const $ end stream $ const $ done $ Right unit
+    let stream = OM.toWriteable $ SR.toOutgoingMessage response
+    void $ Stream.write' stream body $ const $ end' stream $ const $ done $ Right unit
     pure nonCanceler
 
 -- | This instance can be used to send chunked data.  Here, we add a
@@ -141,6 +136,6 @@ instance
   defaultHeaders _ = pure $ mkRequestHeader "Transfer-Encoding" "chunked"
   write body response = makeAff \done -> do
     let stream = to body
-    void $ pipe stream $ responseAsStream response
-    onEnd stream $ done $ Right unit
+    void $ pipe stream $ OM.toWriteable $ SR.toOutgoingMessage response
+    stream # once_ Stream.endH (done $ Right unit)
     pure nonCanceler

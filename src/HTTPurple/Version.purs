@@ -5,7 +5,8 @@ module HTTPurple.Version
 
 import Prelude
 
-import Node.HTTP (Request, httpVersion)
+import Node.HTTP.IncomingMessage (httpVersion)
+import Node.HTTP.Types (IMServer, IncomingMessage)
 
 -- | These are the HTTP versions that HTTPurple understands. There are five
 -- | commonly known versions which are explicitly named.
@@ -31,7 +32,7 @@ instance showVersion :: Show Version where
   show (Other version) = "HTTP/" <> version
 
 -- | Take an HTTP `Request` and extract the `Version` for that request.
-read :: Request -> Version
+read :: IncomingMessage IMServer -> Version
 read = httpVersion >>> case _ of
   "0.9" -> HTTP0_9
   "1.0" -> HTTP1_0

@@ -3,7 +3,6 @@ module Test.HTTPurple.ResponseSpec where
 import Prelude
 
 import Data.Either (Either(Right))
-import Debug (spy)
 import Effect.Aff (makeAff, nonCanceler)
 import Effect.Class (liftEffect)
 import HTTPurple.Body (defaultHeaders)
@@ -11,8 +10,9 @@ import HTTPurple.Headers (toResponseHeaders)
 import HTTPurple.Headers as Headers
 import HTTPurple.Response (emptyResponse, emptyResponse', response, response', send)
 import Node.Encoding (Encoding(UTF8))
-import Node.HTTP (responseAsStream)
-import Node.Stream (end, writeString)
+import Node.HTTP.OutgoingMessage as OM
+import Node.HTTP.ServerResponse as SR
+import Node.Stream (end', writeString')
 import Test.HTTPurple.TestHelpers (Test, getResponseBody, getResponseHeader, getResponseStatus, mockResponse, (?=))
 import Test.Spec (describe, it)
 
@@ -25,8 +25,8 @@ sendSpec =
         , headers: Headers.header "Test" "test"
         , writeBody:
             \response -> makeAff \done -> do
-              stream <- pure $ responseAsStream response
-              void $ writeString stream UTF8 "test" $ const $ end stream $ const $ done $ Right unit
+              stream <- pure $ OM.toWriteable $ SR.toOutgoingMessage response
+              void $ writeString' stream UTF8 "test" $ const $ end' stream $ const $ done $ Right unit
               pure nonCanceler
         }
     it "writes the headers" do
