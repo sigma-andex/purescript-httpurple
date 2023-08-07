@@ -24,20 +24,20 @@ import Effect.Exception (Error)
 import Effect.Ref as Ref
 import Effect.Uncurried (EffectFn1, EffectFn3, mkEffectFn1, runEffectFn1, runEffectFn3)
 import Literals.Undefined (Undefined, undefined)
-import Node.HTTP as HTTP
+import Node.HTTP.Types (IMServer, IncomingMessage, ServerResponse)
 import Prim.Row (class Union)
 import Untagged.Union (type (|+|), UndefinedOr, asOneOf, uorToMaybe)
 
 newtype NodeMiddleware :: forall k. k -> Type
 newtype NodeMiddleware extended =
-  NodeMiddleware (EffectFn3 HTTP.Request HTTP.Response (EffectFn1 (UndefinedOr Error) Unit) (Effect Unit))
+  NodeMiddleware (EffectFn3 (IncomingMessage IMServer) ServerResponse (EffectFn1 (UndefinedOr Error) Unit) (Effect Unit))
 
 derive instance Newtype (NodeMiddleware extended) _
 
 data NextInvocation = NotCalled | ProcessingFailed Error | ProcessingSucceeded
 
 type MiddlewareResultR =
-  (request :: HTTP.Request, response :: HTTP.Response, middlewareResult :: NextInvocation)
+  (request :: IncomingMessage IMServer, response :: ServerResponse, middlewareResult :: NextInvocation)
 
 newtype MiddlewareResult :: forall k. k -> Type
 newtype MiddlewareResult input = MiddlewareResult { | MiddlewareResultR }

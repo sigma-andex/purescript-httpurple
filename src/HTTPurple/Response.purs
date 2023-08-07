@@ -143,7 +143,7 @@ import HTTPurple.Headers (ResponseHeaders, empty, toResponseHeaders)
 import HTTPurple.Headers (write) as Headers
 import HTTPurple.Status (Status)
 import HTTPurple.Status (accepted, alreadyReported, badGateway, badRequest, conflict, continue, created, expectationFailed, failedDependency, forbidden, found, gatewayTimeout, gone, hTTPVersionNotSupported, iMUsed, imATeapot, insufficientStorage, internalServerError, lengthRequired, locked, loopDetected, methodNotAllowed, misdirectedRequest, movedPermanently, multiStatus, multipleChoices, networkAuthenticationRequired, noContent, nonAuthoritativeInformation, notAcceptable, notExtended, notFound, notImplemented, notModified, ok, partialContent, payloadTooLarge, paymentRequired, permanentRedirect, preconditionFailed, preconditionRequired, processing, proxyAuthenticationRequired, rangeNotSatisfiable, requestHeaderFieldsTooLarge, requestTimeout, resetContent, seeOther, serviceUnavailable, switchingProtocols, temporaryRedirect, tooManyRequests, uRITooLong, unauthorized, unavailableForLegalReasons, unprocessableEntity, unsupportedMediaType, upgradeRequired, useProxy, variantAlsoNegotiates, write) as Status
-import Node.HTTP (Response) as HTTP
+import Node.HTTP.Types (ServerResponse)
 
 -- | The `ResponseM` type simply conveniently wraps up an HTTPurple monad that
 -- | returns a response. This type is the return type of all router/route
@@ -154,13 +154,13 @@ type ResponseM = Aff Response
 type Response =
   { status :: Status
   , headers :: ResponseHeaders
-  , writeBody :: HTTP.Response -> Aff Unit
+  , writeBody :: ServerResponse -> Aff Unit
   }
 
 -- | Given an HTTP `Response` and a HTTPurple `Response`, this method will return
 -- | a monad encapsulating writing the HTTPurple `Response` to the HTTP `Response`
 -- | and closing the HTTP `Response`.
-send :: forall m. MonadEffect m => MonadAff m => HTTP.Response -> Response -> m Unit
+send :: forall m. MonadEffect m => MonadAff m => ServerResponse -> Response -> m Unit
 send httpresponse { status, headers, writeBody } = do
   liftEffect $ Status.write httpresponse status
   liftEffect $ Headers.write httpresponse headers

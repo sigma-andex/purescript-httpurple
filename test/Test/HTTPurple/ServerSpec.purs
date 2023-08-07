@@ -3,20 +3,13 @@ module Test.HTTPurple.ServerSpec where
 import Prelude
 
 import Control.Monad.Except (throwError)
-import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(Nothing))
-import Data.Options ((:=))
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
 import Foreign.Object (empty)
 import HTTPurple.Request (Request)
-import HTTPurple.Response (ResponseM, notFound, ok)
+import HTTPurple.Response (ResponseM, ok)
 import HTTPurple.Server (serve)
-import HTTPurple.Server as Server
-import Node.Encoding (Encoding(UTF8))
-import Node.FS.Sync (readTextFile)
-import Node.HTTP.Secure (cert, certString, key, keyString)
 import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G

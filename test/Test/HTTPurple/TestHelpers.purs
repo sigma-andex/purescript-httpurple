@@ -2,40 +2,29 @@ module Test.HTTPurple.TestHelpers where
 
 import Prelude
 
-import Data.Array (fromFoldable) as Array
 import Data.Either (Either(Right))
-import Data.List (List(Nil, Cons), reverse)
 import Data.Maybe (fromMaybe)
-import Data.Options ((:=))
 import Data.String (toLower)
 import Data.Tuple (Tuple)
 import Effect (Effect)
 import Effect.Aff (Aff, makeAff, nonCanceler)
 import Effect.Class (liftEffect)
-import Effect.Ref (modify_, new, read)
+import Foreign (Foreign)
 import Foreign.Object (Object, lookup)
 import Foreign.Object (fromFoldable) as Object
-import Node.Buffer (Buffer, concat, create, fromString)
-import Node.Buffer (toString) as Buffer
+import Node.Buffer (Buffer, create, fromString)
+import Node.Buffer (concat, toString) as Buffer
 import Node.Encoding (Encoding(UTF8))
-import Node.HTTP (Request)
-import Node.HTTP (Response) as HTTP
-import Node.HTTP.Client
-  ( RequestHeaders(RequestHeaders)
-  , headers
-  , hostname
-  , method
-  , path
-  , port
-  , protocol
-  , rejectUnauthorized
-  , requestAsStream
-  , responseAsStream
-  , responseHeaders
-  , statusCode
-  )
-import Node.HTTP.Client (Response, request) as HTTPClient
-import Node.Stream (Readable, end, onData, onEnd, write)
+import Node.EventEmitter (once_)
+import Node.HTTP as HTTP
+import Node.HTTP.ClientRequest as HTTPClient
+import Node.HTTP.IncomingMessage as IM
+import Node.HTTP.OutgoingMessage as OM
+import Node.HTTP.Types (IMClientRequest, IncomingMessage, ServerResponse)
+import Node.HTTPS as HTTPS
+import Node.Stream (Readable)
+import Node.Stream as Stream
+import Node.Stream.Aff (readableToBuffers)
 import Test.Spec (Spec)
 import Test.Spec.Assertions (shouldEqual)
 import Unsafe.Coerce (unsafeCoerce)
@@ -57,27 +46,32 @@ request ::
   Object String ->
   String ->
   Buffer ->
-  Aff HTTPClient.Response
+  Aff (IncomingMessage IMClientRequest)
 request secure port' method' headers' path' body =
   makeAff \done -> do
-    req <- HTTPClient.request options $ Right >>> done
-    let stream = requestAsStream req
+    req <- case secure of
+      true -> HTTPS.requestOpts
+        { method: method'
+        , host: "localhost"
+        , port: port'
+        , path: path'
+        , headers: unsafeCoerce headers' :: Object Foreign
+        , rejectUnauthorized: false
+        }
+      false -> HTTP.requestOpts
+        { method: method'
+        , host: "localhost"
+        , port: port'
+        , path: path'
+        , headers: unsafeCoerce headers' :: Object Foreign
+        }
+    req # once_ HTTPClient.responseH (Right >>> done)
+    let stream = OM.toWriteable $ HTTPClient.toOutgoingMessage req
     void
-      $ write stream body
+      $ Stream.write' stream body
       $ const
-      $ end stream
-      $ const
-      $ pure unit
+      $ Stream.end stream
     pure nonCanceler
-  where
-  options =
-    protocol := (if secure then "https:" else "http:")
-      <> method := method'
-      <> hostname := "localhost"
-      <> port := port'
-      <> path := path'
-      <> headers := RequestHeaders headers'
-      <> rejectUnauthorized := false
 
 -- | Same as `request` but without.
 request' ::
@@ -86,7 +80,7 @@ request' ::
   String ->
   Object String ->
   String ->
-  Aff HTTPClient.Response
+  Aff (IncomingMessage IMClientRequest)
 request' secure port method headers path =
   liftEffect (create 0)
     >>= request secure port method headers path
@@ -99,29 +93,19 @@ requestString ::
   Object String ->
   String ->
   String ->
-  Aff HTTPClient.Response
+  Aff (IncomingMessage IMClientRequest)
 requestString secure port method headers path body = do
   liftEffect (fromString body UTF8)
     >>= request secure port method headers path
 
 -- | Convert a request to an Aff containing the `Buffer with the response body.
-toBuffer :: HTTPClient.Response -> Aff Buffer
-toBuffer response =
-  makeAff \done -> do
-    let
-      stream = responseAsStream response
-    chunks <- new Nil
-    onData stream $ \new -> modify_ (Cons new) chunks
-    onEnd stream $ read chunks
-      >>= reverse
-        >>> Array.fromFoldable
-        >>> concat
-      >>= Right
-        >>> done
-    pure nonCanceler
+toBuffer :: IncomingMessage IMClientRequest -> Aff Buffer
+toBuffer response = do
+  bufs <- readableToBuffers $ IM.toReadable response
+  liftEffect $ Buffer.concat bufs
 
 -- | Convert a request to an Aff containing the string with the response body.
-toString :: HTTPClient.Response -> Aff String
+toString :: IncomingMessage IMClientRequest -> Aff String
 toString resp = do
   buf <- toBuffer resp
   liftEffect $ Buffer.toString UTF8 buf
@@ -174,8 +158,8 @@ postBinary port headers path = request false port "POST" headers path >=> toStri
 
 -- | Convert a request to an Aff containing the string with the given header
 -- | value.
-extractHeader :: String -> HTTPClient.Response -> String
-extractHeader header = unmaybe <<< lookup' <<< responseHeaders
+extractHeader :: String -> IncomingMessage IMClientRequest -> String
+extractHeader header = unmaybe <<< lookup' <<< IM.headers
   where
   unmaybe = fromMaybe ""
 
@@ -196,45 +180,47 @@ getStatus ::
   Object String ->
   String ->
   Aff Int
-getStatus port headers path = statusCode <$> request' false port "GET" headers path
+getStatus port headers path = IM.statusCode <$> request' false port "GET" headers path
 
 -- | Mock an HTTP Request object
 foreign import mockRequestImpl ::
+  forall a.
   String ->
   String ->
   String ->
   String ->
   Object String ->
-  Effect Request
+  Effect (IncomingMessage a)
 
 -- | Mock an HTTP Request object
 mockRequest ::
+  forall a.
   String ->
   String ->
   String ->
   String ->
   Array (Tuple String String) ->
-  Aff Request
+  Aff (IncomingMessage a)
 mockRequest httpVersion method url body = liftEffect <<< mockRequestImpl httpVersion method url body <<< Object.fromFoldable
 
 -- | Mock an HTTP Response object
-foreign import mockResponse :: Effect HTTP.Response
+foreign import mockResponse :: Effect ServerResponse
 
 -- | Get the current body from an HTTP Response object (note this will only work
 -- | with an object returned from mockResponse).
-getResponseBody :: HTTP.Response -> String
+getResponseBody :: ServerResponse -> String
 getResponseBody = _.body <<< unsafeCoerce
 
 -- | Get the currently set status from an HTTP Response object.
-getResponseStatus :: HTTP.Response -> Int
+getResponseStatus :: ServerResponse -> Int
 getResponseStatus = _.statusCode <<< unsafeCoerce
 
 -- | Get all current headers on the HTTP Response object.
-getResponseHeaders :: HTTP.Response -> Object (Array String)
+getResponseHeaders :: ServerResponse -> Object (Array String)
 getResponseHeaders = unsafeCoerce <<< _.headers <<< unsafeCoerce
 
 -- | Get the current value for the header on the HTTP Response object.
-getResponseHeader :: String -> HTTP.Response -> Array String
+getResponseHeader :: String -> ServerResponse -> Array String
 getResponseHeader header = fromMaybe [ "" ] <<< lookup header <<< getResponseHeaders
 
 -- | Create a stream out of a string.

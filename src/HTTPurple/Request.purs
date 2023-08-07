@@ -32,8 +32,8 @@ import HTTPurple.Query (read) as Query
 import HTTPurple.Utils (encodeURIComponent)
 import HTTPurple.Version (Version)
 import HTTPurple.Version (read) as Version
-import Node.HTTP (Request) as HTTP
-import Node.HTTP (requestURL)
+import Node.HTTP.IncomingMessage as IM
+import Node.HTTP.Types (IMServer, IncomingMessage)
 import Prim.Row (class Nub, class Union)
 import Prim.RowList (class RowToList)
 import Record (merge)
@@ -81,7 +81,7 @@ fullPath { path: p, query } = "/" <> path <> questionMark <> queryParams
   queryParamsArr = toArrayWithKey stringifyQueryParam query
   stringifyQueryParam key value = encodeURIComponent key <> "=" <> encodeURIComponent value
 
-mkRequest :: forall route m. MonadEffect m => HTTP.Request -> route -> m (Request route)
+mkRequest :: forall route m. MonadEffect m => IncomingMessage IMServer -> route -> m (Request route)
 mkRequest request route = do
   body <- liftEffect $ Body.read request
   pure
@@ -92,17 +92,17 @@ mkRequest request route = do
     , headers: Headers.read request
     , body
     , httpVersion: Version.read request
-    , url: requestURL request
+    , url: IM.url request
     }
 
 -- | Given an HTTP `Request` object, this method will convert it to an HTTPurple
 -- | `Request` object.
-fromHTTPRequest :: forall route. RD.RouteDuplex' route -> HTTP.Request -> Aff (Either (Request Unit) (Request route))
+fromHTTPRequest :: forall route. RD.RouteDuplex' route -> IncomingMessage IMServer -> Aff (Either (Request Unit) (Request route))
 fromHTTPRequest route request = do
-  RD.parse route (requestURL request) #
+  RD.parse route (IM.url request) #
     bitraverse (const $ mkRequest request unit) (mkRequest request)
 
-fromHTTPRequestUnit :: HTTP.Request -> Aff (Request Unit)
+fromHTTPRequestUnit :: IncomingMessage IMServer -> Aff (Request Unit)
 fromHTTPRequestUnit = flip mkRequest unit
 
 fromHTTPRequestExt ::
@@ -113,7 +113,7 @@ fromHTTPRequestExt ::
   Keys ctx =>
   RD.RouteDuplex' route ->
   Proxy ctx ->
-  HTTP.Request ->
+  IncomingMessage IMServer ->
   Aff (Either (Request Unit) (ExtRequestNT route ctx))
 fromHTTPRequestExt route _ nodeRequest = do
   let

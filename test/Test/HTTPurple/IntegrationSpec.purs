@@ -2,8 +2,6 @@ module Test.HTTPurple.IntegrationSpec where
 
 import Prelude
 
-import Control.Monad.Trans.Class (lift)
-import Effect.Aff (Milliseconds(..), delay)
 import Effect.Class (liftEffect)
 import Examples.AsyncResponse.Main as AsyncResponse
 import Examples.BinaryRequest.Main as BinaryRequest
@@ -26,7 +24,7 @@ import Foreign.Object as Object
 import Node.Buffer (toArray)
 import Node.FS.Aff (readFile)
 import Test.HTTPurple.TestHelpers (Test, get, get', getBinary, getHeader, post, postBinary, (?=))
-import Test.Spec (Tree(..), describe, it)
+import Test.Spec (describe, it)
 import Test.Spec.Assertions.String (shouldStartWith)
 
 asyncResponseSpec :: Test

@@ -17,7 +17,6 @@ import Prelude
 import Control.Monad.Cont (runContT)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
-import Data.Options ((:=))
 import Data.Posix.Signal (Signal(..))
 import Data.Profunctor (lcmap)
 import Data.Profunctor.Choice ((|||))
@@ -33,13 +32,16 @@ import HTTPurple.Response (Response, ResponseM, internalServerError, notFound, s
 import Justifill (justifill)
 import Justifill.Fillable (class FillableFields)
 import Justifill.Justifiable (class JustifiableFields)
-import Node.Encoding (Encoding(UTF8))
-import Node.FS.Sync (readTextFile)
-import Node.HTTP (ListenOptions, Request, Response, createServer) as HTTP
-import Node.HTTP (close, listen)
-import Node.HTTP.Secure (cert, certString, key, keyString)
-import Node.HTTP.Secure (createServer) as HTTPS
-import Node.Process (onSignal)
+import Node.EventEmitter as EE
+import Node.FS.Sync (readFile)
+import Node.HTTP as HTTP
+import Node.HTTP.Server as HServer
+import Node.HTTP.Types (IMServer, IncomingMessage, ServerResponse)
+import Node.HTTPS as HTTPS
+import Node.Net.Server (listenTcp, listeningH)
+import Node.Net.Server as NServer
+import Node.Process (mkSignalH)
+import Node.Process as Process
 import Prim.Row (class Nub, class Union)
 import Prim.RowList (class RowToList)
 import Record (merge)
@@ -101,8 +103,8 @@ defaultMiddlewareErrorHandler err _ = do
 -- | handle requests without a routing adt.
 handleRequestUnit ::
   (Request Unit -> ResponseM) ->
-  HTTP.Request ->
-  HTTP.Response ->
+  IncomingMessage IMServer ->
+  ServerResponse ->
   Effect Unit
 handleRequestUnit router request httpresponse =
   void $ runAff (\_ -> pure unit) $ fromHTTPRequestUnit request
@@ -127,8 +129,8 @@ handleExtRequest ::
   , router :: ExtRequestNT route ctx -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
   } ->
-  HTTP.Request ->
-  HTTP.Response ->
+  IncomingMessage IMServer ->
+  ServerResponse ->
   Aff Unit
 handleExtRequest { route, router, notFoundHandler } req resp = do
   httpurpleReq <- fromHTTPRequestExt route (Proxy :: Proxy ctx) req
@@ -145,8 +147,8 @@ handleRequest ::
   , router :: ExtRequestNT route ctx -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
   } ->
-  HTTP.Request ->
-  HTTP.Response ->
+  IncomingMessage IMServer ->
+  ServerResponse ->
   Effect Unit
 handleRequest settings request response = void $ runAff (\_ -> pure unit) $ handleExtRequest settings request response
 
@@ -161,8 +163,8 @@ handleExtRequestWithMiddleware ::
   , router :: ExtRequestNT route output -> ResponseM
   , notFoundHandler :: Request Unit -> ResponseM
   } ->
-  HTTP.Request ->
-  HTTP.Response ->
+  IncomingMessage IMServer ->
+  ServerResponse ->
   Effect Unit
 handleExtRequestWithMiddleware { route, nodeMiddleware: NodeMiddlewareStack middleware, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
   eff <- liftEffect $ flip runContT (coerce >>> pure) $ middleware (MiddlewareResult { request: req, response: resp, middlewareResult: NotCalled })
@@ -209,15 +211,14 @@ serveInternal inputOptions maybeNodeMiddleware settings = do
     filledOptions :: ListenOptions
     filledOptions = justifill inputOptions
 
-    hostname = fromMaybe defaultHostname filledOptions.hostname
+    host = fromMaybe defaultHostname filledOptions.hostname
     port = fromMaybe defaultPort filledOptions.port
-    onStarted = fromMaybe (defaultOnStart hostname port) filledOptions.onStarted
+    onStarted = fromMaybe (defaultOnStart host port) filledOptions.onStarted
 
-    options :: HTTP.ListenOptions
     options =
-      { hostname
+      { host
       , port
-      , backlog: filledOptions.backlog
+      , backlog: fromMaybe 511 filledOptions.backlog
       }
 
     routingSettings = merge settings { notFoundHandler: fromMaybe defaultNotFoundHandler filledOptions.notFoundHandler }
@@ -226,17 +227,24 @@ serveInternal inputOptions maybeNodeMiddleware settings = do
       Just nodeMiddleware -> handleExtRequestWithMiddleware $ merge routingSettings { nodeMiddleware }
       Nothing -> handleRequest routingSettings
     sslOptions = { certFile: _, keyFile: _ } <$> filledOptions.certFile <*> filledOptions.keyFile
-  server <- case sslOptions of
-    Just { certFile, keyFile } ->
-      do
-        cert' <- readTextFile UTF8 certFile
-        key' <- readTextFile UTF8 keyFile
-        let sslOpts = key := keyString key' <> cert := certString cert'
-        HTTPS.createServer sslOpts handler
-    Nothing -> HTTP.createServer handler
-  listen server options onStarted
-  let closingHandler = close server
-  registerClosingHandler filledOptions.closingHandler closingHandler
+  netServer <- case sslOptions of
+    Just { certFile, keyFile } -> do
+      cert' <- readFile certFile
+      key' <- readFile keyFile
+      server <- HTTPS.createSecureServer'
+        { key: [ key' ]
+        , cert: [ cert' ]
+        }
+      server # EE.on_ HServer.requestH handler
+      pure $ HServer.toNetServer server
+    Nothing -> do
+      server <- HTTP.createServer
+      server # EE.on_ HServer.requestH handler
+      pure $ HServer.toNetServer server
+  netServer # EE.on_ listeningH onStarted
+  listenTcp netServer options
+  let closingHandler = NServer.close netServer
+  liftEffect $ registerClosingHandler filledOptions.closingHandler (\eff -> eff *> closingHandler)
 
 serve ::
   forall route from fromRL via missing missingList.
@@ -277,8 +285,8 @@ serveNodeMiddleware inputOptions { route, router, nodeMiddleware } = do
 registerClosingHandler :: Maybe ClosingHandler -> (Effect Unit -> Effect Unit) -> ServerM
 registerClosingHandler (Just NoClosingHandler) closingHandler = pure closingHandler
 registerClosingHandler _ closingHandler = do
-  onSignal SIGINT $ closingHandler $ log "Aye, stopping service now. Goodbye!"
-  onSignal SIGTERM $ closingHandler $ log "Arrgghh I got stabbed in the back 🗡 ... good...bye..."
+  Process.process # EE.on_ (mkSignalH SIGINT) (closingHandler $ log "Aye, stopping service now. Goodbye!")
+  Process.process # EE.on_ (mkSignalH SIGTERM) (closingHandler $ log "Arrgghh I got stabbed in the back 🗡 ... good...bye...")
   pure closingHandler
 
 defaultHostname :: String
