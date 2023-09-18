@@ -2,6 +2,9 @@
 
 ## Unpublished
 
+## v4.0.0
+- Update to latest version of node libraries (#15 by @JordanMartinez)
+
 ## v3.0.0
 - Make requests extensible, which allows middlewares to pass data to the handler (e.g. user information from an authentication middleware)
 - Support Node/express middlewares
