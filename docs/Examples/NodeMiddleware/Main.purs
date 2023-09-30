@@ -6,8 +6,9 @@ import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Data.Nullable (Nullable)
 import Data.Nullable as Nullable
+import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (ExtRequest, NodeMiddleware, NodeMiddlewareStack(..), ResponseM, ServerM, ok, serveNodeMiddleware, usingMiddleware)
+import HTTPurple (ExtRequest, NodeMiddleware, NodeMiddlewareStack(..), Response, ServerM, ok, serveNodeMiddleware, usingMiddleware)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
 
@@ -30,7 +31,7 @@ sayHelloRoute = RD.root $ RG.sum
   }
 
 -- | Say 'hello <USER>' when run with X-Token, otherwise 'hello anonymous'
-sayHello :: ExtRequest SayHello AuthenticatorR -> ResponseM
+sayHello :: ExtRequest SayHello AuthenticatorR -> Aff Response
 sayHello { user } = case Nullable.toMaybe user of
   Just u -> ok $ "hello " <> u
   Nothing -> ok $ "hello " <> "anonymous"

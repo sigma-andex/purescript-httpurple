@@ -2,13 +2,11 @@ module Examples.CustomStack.Main where
 
 import Prelude
 
-import Control.Monad.Reader (class MonadAsk, ReaderT, asks, runReaderT)
+import Control.Monad.Reader (class MonadAsk, asks, runReaderT)
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
-import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (log)
-import HTTPurple (Request, Response, ResponseM, ServerM, ok, serve)
+import HTTPurple (Request, Response, ServerM, ok, serve')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
 
@@ -24,15 +22,6 @@ route = RD.root $ RG.sum
 -- | A type to hold the environment for our ReaderT
 type Env = { name :: String }
 
--- | A middleware that introduces a ReaderT
-readerMiddleware ::
-  forall route.
-  (Request route -> ReaderT Env Aff Response) ->
-  Request route ->
-  ResponseM
-readerMiddleware router request = do
-  runReaderT (router request) { name: "joe" }
-
 -- | Say 'hello, joe' when run
 sayHello :: forall m. MonadAff m => MonadAsk Env m => Request Route -> m Response
 sayHello _ = do
@@ -42,7 +31,7 @@ sayHello _ = do
 -- | Boot up the server
 main :: ServerM
 main =
-  serve { hostname: "localhost", port: 8080, onStarted } { route, router: readerMiddleware sayHello }
+  serve' (\a -> runReaderT a {name: "joe"}) { hostname: "localhost", port: 8080, onStarted } { route, router: sayHello }
   where
   onStarted = do
     log " ┌───────────────────────────────────────┐"

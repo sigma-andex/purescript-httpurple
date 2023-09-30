@@ -6,9 +6,10 @@ import Data.Generic.Rep (class Generic)
 import Data.JSDate (JSDate)
 import Data.JSDate as JSDate
 import Data.Maybe (Maybe(..))
+import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import HTTPurple (ExtRequest, Middleware, Request, RequestR, ResponseM, ServerM, ok, serve)
+import HTTPurple (ExtRequest, Middleware, Request, RequestR, Response, ServerM, ok, serve)
 import HTTPurple as Headers
 import Prim.Row (class Nub, class Union)
 import Record (merge)
@@ -43,12 +44,12 @@ sayHelloRoute = RD.root $ RG.sum
   }
 
 -- | Say 'hello <USER>' when run with X-Token, otherwise 'hello anonymous'
-sayHello :: ExtRequest SayHello (user :: Maybe String, time :: JSDate) -> ResponseM
+sayHello :: ExtRequest SayHello (user :: Maybe String, time :: JSDate) -> Aff Response
 sayHello { user: Just user, time } = ok $ "hello " <> user <> ", it is " <> JSDate.toDateString time <> " " <> JSDate.toTimeString time
 sayHello { user: Nothing, time } = ok $ "hello " <> "anonymous, it is " <> JSDate.toDateString time <> " " <> JSDate.toTimeString time
 
 -- | The stack of middlewares to use for the server
-middlewareStack :: forall route. (ExtRequest route (user :: Maybe String, time :: JSDate) -> ResponseM) -> Request route -> ResponseM
+middlewareStack :: forall route. (ExtRequest route (user :: Maybe String, time :: JSDate) -> Aff Response) -> Request route -> Aff Response
 middlewareStack = authenticator <<< requestTime
 
 -- | Boot up the server
