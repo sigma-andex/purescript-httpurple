@@ -4,8 +4,9 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseM, ServerM, ok, serve)
+import HTTPurple (Request, Response, ServerM, ok, serve)
 import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G
@@ -29,7 +30,7 @@ key :: String
 key = "./docs/Examples/SSL/Key.key"
 
 -- | Say 'hello world!' when run
-sayHello :: Request Route -> ResponseM
+sayHello :: Request Route -> Aff Response
 sayHello _ = ok "hello world!"
 
 -- | Boot up the server

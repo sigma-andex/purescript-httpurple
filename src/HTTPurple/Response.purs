@@ -1,6 +1,5 @@
 module HTTPurple.Response
   ( Response
-  , ResponseM
   , send
   , response
   , response'
@@ -144,11 +143,6 @@ import HTTPurple.Headers (write) as Headers
 import HTTPurple.Status (Status)
 import HTTPurple.Status (accepted, alreadyReported, badGateway, badRequest, conflict, continue, created, expectationFailed, failedDependency, forbidden, found, gatewayTimeout, gone, hTTPVersionNotSupported, iMUsed, imATeapot, insufficientStorage, internalServerError, lengthRequired, locked, loopDetected, methodNotAllowed, misdirectedRequest, movedPermanently, multiStatus, multipleChoices, networkAuthenticationRequired, noContent, nonAuthoritativeInformation, notAcceptable, notExtended, notFound, notImplemented, notModified, ok, partialContent, payloadTooLarge, paymentRequired, permanentRedirect, preconditionFailed, preconditionRequired, processing, proxyAuthenticationRequired, rangeNotSatisfiable, requestHeaderFieldsTooLarge, requestTimeout, resetContent, seeOther, serviceUnavailable, switchingProtocols, temporaryRedirect, tooManyRequests, uRITooLong, unauthorized, unavailableForLegalReasons, unprocessableEntity, unsupportedMediaType, upgradeRequired, useProxy, variantAlsoNegotiates, write) as Status
 import Node.HTTP.Types (ServerResponse)
-
--- | The `ResponseM` type simply conveniently wraps up an HTTPurple monad that
--- | returns a response. This type is the return type of all router/route
--- | methods.
-type ResponseM = Aff Response
 
 -- | A `Response` is a status code, headers, and a body.
 type Response =

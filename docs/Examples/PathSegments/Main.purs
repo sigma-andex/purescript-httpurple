@@ -4,9 +4,9 @@ import Prelude hiding ((/))
 
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseM, ServerM, ok, serve)
-import HTTPurple (Request, ResponseM, ServerM, ok, serve)
+import HTTPurple (Request, Response, ServerM, ok, serve)
 import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G
@@ -23,7 +23,7 @@ route = RD.root $ G.sum
   }
 
 -- | Specify the routes
-router :: Request Route -> ResponseM
+router :: Request Route -> Aff Response
 router { route: Segment elem } = ok elem
 router { route: ManySegments elems } = ok $ show elems
 

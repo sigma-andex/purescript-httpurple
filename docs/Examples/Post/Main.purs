@@ -4,8 +4,9 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Method(Post), Request, ResponseM, ServerM, notFound, ok, serve, toString)
+import HTTPurple (Method(Post), Request, Response, ServerM, notFound, ok, serve, toString)
 import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G
@@ -20,7 +21,7 @@ route = RD.root $ G.sum
   }
 
 -- | Route to the correct handler
-router :: Request Route -> ResponseM
+router :: Request Route -> Aff Response
 router { body, method: Post } = toString body >>= ok
 router _ = notFound
 
