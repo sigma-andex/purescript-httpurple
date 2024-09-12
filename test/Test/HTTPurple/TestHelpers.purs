@@ -10,7 +10,7 @@ import Data.Newtype (wrap)
 import Data.String (toLower)
 import Data.Tuple (Tuple)
 import Effect (Effect)
-import Effect.Aff (Aff, delay, makeAff, effectCanceler, nonCanceler)
+import Effect.Aff (Aff, delay, effectCanceler, makeAff, nonCanceler)
 import Effect.Aff.Compat (mkEffectFn1)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
@@ -19,7 +19,7 @@ import Effect.Ref as Ref
 import Foreign (Foreign)
 import Foreign.Object (Object, lookup)
 import Foreign.Object (empty, fromFoldable) as Object
-import HTTPurple.Server (serve, ListenOptionsR, BasicRoutingSettings)
+import HTTPurple.Server (BasicRoutingSettings, ListenOptionsR, serve)
 import Justifill.Fillable (class FillableFields)
 import Justifill.Justifiable (class JustifiableFields)
 import Node.Buffer (Buffer, create, fromString)
@@ -125,9 +125,9 @@ request secure port' method' headers' path' body =
       connectionAttemptFailedH = EventHandle "connectionAttemptFailed" mkEffectFn1
 
     req # once_ HTTPClient.socketH
-      (\socket ->
-        once_ Stream.errorH (Left >>> done) (Socket.toDuplex socket)
-        *> once_ connectionAttemptFailedH (Left >>> done) socket
+      ( \socket ->
+          once_ Stream.errorH (Left >>> done) (Socket.toDuplex socket)
+            *> once_ connectionAttemptFailedH (Left >>> done) socket
       )
     req # once_ HTTPClient.responseH (Right >>> done)
     let stream = OM.toWriteable $ HTTPClient.toOutgoingMessage req

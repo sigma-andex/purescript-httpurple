@@ -104,7 +104,8 @@ defaultMiddlewareErrorHandler err _ = do
   internalServerError "Internal server error"
 
 -- | handle requests without a routing adt.
-handleRequestUnit :: forall m.
+handleRequestUnit ::
+  forall m.
   MonadError Error m =>
   MonadAff m =>
   (Request Unit -> m Response) ->

@@ -14,7 +14,7 @@ import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G
 import Routing.Duplex.Generic as RG
-import Test.HTTPurple.TestHelpers (Test, serveAwaitStarted, get, get', getStatus, (?=))
+import Test.HTTPurple.TestHelpers (Test, get, get', getStatus, serveAwaitStarted, (?=))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (expectError)
 
