@@ -4,8 +4,9 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseM, ServerM, ok, serve, toBuffer)
+import HTTPurple (Request, Response, ServerM, ok, serve, toBuffer)
 import Node.Buffer (Buffer)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
@@ -22,7 +23,7 @@ route = RD.root $ RG.sum
 foreign import sha256sum :: Buffer -> String
 
 -- | Respond with file's sha256sum
-router :: Request Route -> ResponseM
+router :: Request Route -> Aff Response
 router { body } = toBuffer body >>= sha256sum >>> ok
 
 -- | Boot up the server

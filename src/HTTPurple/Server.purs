@@ -67,7 +67,7 @@ type ListenOptionsR m =
   , backlog :: Maybe Int
   , closingHandler :: Maybe ClosingHandler
   , notFoundHandler :: Maybe (Request Unit -> m Response)
-  , onStarted :: Maybe (m Unit)
+  , onStarted :: Maybe (Effect Unit)
   , certFile :: Maybe String
   , keyFile :: Maybe String
   )
@@ -255,7 +255,7 @@ serveInternal performM inputOptions maybeNodeMiddleware settings = do
       server <- liftEffect $ HTTP.createServer
       liftEffect $ EE.on_ HServer.requestH handler server
       pure $ HServer.toNetServer server
-  liftEffect $ EE.on_ listeningH (launchAff_ $ performM onStarted) netServer
+  liftEffect $ EE.on_ listeningH onStarted netServer
   liftEffect $ listenTcp netServer options
   let closingHandler = NServer.close netServer
   srv <- registerClosingHandler filledOptions.closingHandler (\eff -> eff *> closingHandler)
@@ -276,6 +276,36 @@ serve inputOptions { route, router } = do
     extendedSettings = { route, router: asExtended router }
   serveInternal identity inputOptions Nothing extendedSettings
 
+--| `serve` generalized to any MonadAff
+--|
+--| ```
+--| module Main where
+--|
+--| import Prelude hiding ((/))
+--| import HTTPurple
+--|
+--| import Effect (Effect)
+--| import Effect.Aff (Aff, launchAff_)
+--| import Effect.Console (log)
+--| import Control.Monad.Logger.Trans (LoggerT)
+--|
+--| type M = LoggerT Aff
+--|
+--| data Route = Hello String
+--|
+--| route :: RouteDuplex'
+--| route = mkRoute { "Hello": "hello" / segment }
+--|
+--| router :: ExtRequest Route () -> Response M
+--| router {route: Hello m} = ok $ "hi, " <> m <> "!"
+--|
+--| main :: Effect Unit
+--| main =
+--|  let
+--|    launchM m = runLoggerT m (liftEffect <<< log)
+--|  in
+--|    serve' launchM {port: 8080} {route, router}
+--| ```
 serve' ::
   forall m route from fromRL via missing missingList.
   MonadAff m =>

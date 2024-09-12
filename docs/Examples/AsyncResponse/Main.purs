@@ -4,8 +4,9 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseM, ServerM, ok, serve)
+import HTTPurple (Request, Response, ServerM, ok, serve)
 import Node.Encoding (Encoding(UTF8))
 import Node.FS.Aff (readTextFile)
 import Routing.Duplex as RD
@@ -24,7 +25,7 @@ route = RD.root $ RG.sum
 filePath :: String
 filePath = "./docs/Examples/AsyncResponse/Hello"
 
-router :: Request Route -> ResponseM
+router :: Request Route -> Aff Response
 router { route: SayHello } = readTextFile UTF8 filePath >>= ok
 
 -- | Boot up the server

@@ -3,8 +3,9 @@ module Examples.Headers.Main where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
+import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseHeaders, ResponseM, ServerM, ok', serve, (!@))
+import HTTPurple (Request, ResponseHeaders, Response, ServerM, ok', serve, (!@))
 import HTTPurple.Headers (headers)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
@@ -26,7 +27,7 @@ responseHeaders = headers
   }
 
 -- | Route to the correct handler
-router :: Request Route -> ResponseM
+router :: Request Route -> Aff Response
 router { headers } = ok' responseHeaders $ headers !@ "X-Input"
 
 -- | Boot up the server
