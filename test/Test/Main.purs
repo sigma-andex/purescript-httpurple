@@ -19,10 +19,10 @@ import Test.HTTPurple.UtilsSpec (utilsSpec)
 import Test.HTTPurple.VersionSpec (versionSpec)
 import Test.Spec (describe)
 import Test.Spec.Reporter (specReporter)
-import Test.Spec.Runner (defaultConfig, runSpec')
+import Test.Spec.Runner (runSpec)
 
 main :: TestSuite
-main = launchAff_ $ runSpec' (defaultConfig {failFast = true}) [ specReporter ] $ describe "HTTPurple" do
+main = launchAff_ $ runSpec [ specReporter ] $ describe "HTTPurple" do
   bodySpec
   headersSpec
   lookupSpec
