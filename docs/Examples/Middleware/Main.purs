@@ -5,9 +5,10 @@ import Prelude hiding ((/))
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import HTTPurple (type (<+>), Request, ResponseM, ServerM, fullPath, header, ok, ok', serve, (<+>))
+import HTTPurple (type (<+>), Request, Response, ServerM, fullPath, header, ok, ok', serve, (<+>))
 import Record as Record
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
@@ -35,9 +36,9 @@ sayHelloRoute = RD.root $ RG.sum
 -- | A middleware that logs at the beginning and end of each request
 loggingMiddleware ::
   forall route.
-  (Request route -> ResponseM) ->
+  (Request route -> Aff Response) ->
   Request route ->
-  ResponseM
+  Aff Response
 loggingMiddleware router request = do
   liftEffect $ log $ "Request starting for " <> path
   response <- router request
@@ -50,9 +51,9 @@ loggingMiddleware router request = do
 -- | wasn't already in the response
 headerMiddleware ::
   forall route.
-  (Request route -> ResponseM) ->
+  (Request route -> Aff Response) ->
   Request route ->
-  ResponseM
+  Aff Response
 headerMiddleware router request = do
   response@{ headers } <- router request
   pure $ response { headers = header' <> headers }
@@ -63,18 +64,18 @@ headerMiddleware router request = do
 -- | router when requesting /middleware
 pathMiddleware ::
   forall route.
-  (Request route -> ResponseM) ->
+  (Request route -> Aff Response) ->
   Request (Middleware <+> route) ->
-  ResponseM
+  Aff Response
 pathMiddleware _ { route: Left Middleware } = ok "Middleware!"
 pathMiddleware router request@{ route: Right r } = router $ Record.set (Proxy :: _ "route") r request
 
 -- | Say 'hello' when run, and add a default value to the X-Middleware header
-sayHello :: Request SayHello -> ResponseM
+sayHello :: Request SayHello -> Aff Response
 sayHello _ = ok' (header "X-Middleware" "router") "hello"
 
 -- | The stack of middlewares to use for the server
-middlewareStack :: forall route. (Request route -> ResponseM) -> Request (Either Middleware route) -> ResponseM
+middlewareStack :: forall route. (Request route -> Aff Response) -> Request (Either Middleware route) -> Aff Response
 middlewareStack = loggingMiddleware <<< headerMiddleware <<< pathMiddleware
 
 -- | Boot up the server

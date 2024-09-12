@@ -4,11 +4,12 @@ import Prelude
 
 import Control.Monad.Except (throwError)
 import Data.Generic.Rep (class Generic)
+import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Exception (error)
 import Foreign.Object (empty)
 import HTTPurple.Request (Request)
-import HTTPurple.Response (ResponseM, ok)
+import HTTPurple.Response (Response, ok)
 import HTTPurple.Server (serve)
 import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
@@ -27,7 +28,7 @@ route = RD.root $ G.sum
   { "Test": RD.path "test" RG.noArgs
   }
 
-mockRouter :: Request Route -> ResponseM
+mockRouter :: Request Route -> Aff Response
 mockRouter { route: Test } = ok $ RD.print route Test
 
 serveSpec :: Test

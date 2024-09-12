@@ -7,7 +7,7 @@ import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseM, ServerM, ok, serve)
+import HTTPurple (Request, Response, ServerM, ok, serve)
 import Node.ChildProcess (defaultSpawnOptions, spawn, stdout)
 import Node.Stream (Readable)
 import Routing.Duplex as RD
@@ -28,7 +28,7 @@ runScript script =
   liftEffect $ stdout <$> spawn "sh" [ "-c", script ] defaultSpawnOptions
 
 -- | Say 'hello world!' in chunks when run
-router :: Request Route -> ResponseM
+router :: Request Route -> Aff Response
 router = const $ runScript "echo 'hello '; sleep 1; echo 'world!'" >>= ok
 
 -- | Boot up the server

@@ -5,8 +5,9 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
+import Effect.Aff (Aff)
 import Effect.Class.Console (log)
-import HTTPurple (Request, ResponseM, ServerM, notFound, ok, serve)
+import HTTPurple (Request, Response, ServerM, notFound, ok, serve)
 import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G
@@ -21,7 +22,7 @@ route = RD.root $ G.sum
   }
 
 -- | Specify the routes
-router :: Request Route -> ResponseM
+router :: Request Route -> Aff Response
 router { route: (Route { foo: true }) } = ok "foo"
 router { route: (Route { bar: Just "test" }) } = ok "bar"
 router { route: (Route { bar: Just _ }) } = ok ""

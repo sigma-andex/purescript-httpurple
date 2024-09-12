@@ -4,8 +4,9 @@ import Prelude
 
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe(..))
+import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseHeaders, ResponseM, ServerM, header, ok', serve)
+import HTTPurple (Request, ResponseHeaders, Response, ServerM, header, ok', serve)
 import Node.FS.Aff (readFile)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
@@ -27,7 +28,7 @@ responseHeaders :: ResponseHeaders
 responseHeaders = header "Content-Type" "image/png"
 
 -- | Respond with image data when run
-router :: Request Route -> ResponseM
+router :: Request Route -> Aff Response
 router = const $ readFile filePath >>= ok' responseHeaders
 
 -- | Boot up the server
