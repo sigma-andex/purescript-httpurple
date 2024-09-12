@@ -13,8 +13,9 @@ import Control.Alt ((<|>))
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Profunctor.Choice ((|||))
+import Effect.Aff.Class (class MonadAff)
 import HTTPurple.Request (Request)
-import HTTPurple.Response (ResponseM)
+import HTTPurple.Response (Response)
 import Record as Record
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
@@ -39,11 +40,12 @@ infixr 3 combineRoutes as <+>
 
 -- | Combine two request handlers.
 orElse ::
-  forall left right.
-  (Request left -> ResponseM) ->
-  (Request right -> ResponseM) ->
+  forall left right m.
+  MonadAff m =>
+  (Request left -> m Response) ->
+  (Request right -> m Response) ->
   Request (left <+> right) ->
-  ResponseM
+  m Response
 orElse leftRouter _ request@{ route: Left l } = leftRouter $ Record.set (Proxy :: _ "route") l request
 orElse _ rightRouter request@{ route: Right r } = rightRouter $ Record.set (Proxy :: _ "route") r request
 

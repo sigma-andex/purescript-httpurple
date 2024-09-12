@@ -9,26 +9,29 @@ module HTTPurple.Server
   , ServerM
   , defaultMiddlewareErrorHandler
   , serve
+  , serve'
   , serveNodeMiddleware
   ) where
 
 import Prelude
 
 import Control.Monad.Cont (runContT)
+import Control.Monad.Error.Class (class MonadError)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
 import Data.Posix.Signal (Signal(..))
 import Data.Profunctor (lcmap)
 import Data.Profunctor.Choice ((|||))
 import Effect (Effect)
-import Effect.Aff (Aff, catchError, message, runAff)
-import Effect.Class (liftEffect)
+import Effect.Aff (Aff, catchError, launchAff_, message)
+import Effect.Aff.Class (class MonadAff)
+import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Class.Console (log)
 import Effect.Console (error)
 import Effect.Exception (Error)
 import HTTPurple.NodeMiddleware (MiddlewareResult(..), NextInvocation(..), NodeMiddlewareStack(..))
 import HTTPurple.Request (ExtRequest, ExtRequestNT, Request, RequestR, fromHTTPRequestExt, fromHTTPRequestUnit)
-import HTTPurple.Response (Response, ResponseM, internalServerError, notFound, send)
+import HTTPurple.Response (Response, internalServerError, notFound, send)
 import Justifill (justifill)
 import Justifill.Fillable (class FillableFields)
 import Justifill.Justifiable (class JustifiableFields)
@@ -58,22 +61,22 @@ type ServerM = Effect (Effect Unit -> Effect Unit)
 
 data ClosingHandler = DefaultClosingHandler | NoClosingHandler
 
-type ListenOptionsR =
+type ListenOptionsR m =
   ( hostname :: Maybe String
   , port :: Maybe Int
   , backlog :: Maybe Int
   , closingHandler :: Maybe ClosingHandler
-  , notFoundHandler :: Maybe (Request Unit -> ResponseM)
-  , onStarted :: Maybe (Effect Unit)
+  , notFoundHandler :: Maybe (Request Unit -> m Response)
+  , onStarted :: Maybe (m Unit)
   , certFile :: Maybe String
   , keyFile :: Maybe String
   )
 
-type ListenOptions = { | ListenOptionsR }
+type ListenOptions m = { | ListenOptionsR m }
 
-type RoutingSettingsR route output r =
+type RoutingSettingsR m route output r =
   ( route :: RD.RouteDuplex' route
-  , router :: ExtRequest route output -> ResponseM
+  , router :: ExtRequest route output -> m Response
   | r
   )
 
@@ -82,104 +85,112 @@ type MiddlewareSettingsR input output =
   ( nodeMiddleware :: NodeMiddlewareStack input output
   )
 
-type BasicRoutingSettings route = { | RoutingSettingsR route () () }
+type BasicRoutingSettings m route = { | RoutingSettingsR m route () () }
 
-type ExtRoutingSettings :: Type -> Row Type -> Row Type -> Type
-type ExtRoutingSettings route input output = { | RoutingSettingsR route output + MiddlewareSettingsR input output }
+type ExtRoutingSettings :: (Type -> Type) -> Type -> Row Type -> Row Type -> Type
+type ExtRoutingSettings m route input output = { | RoutingSettingsR m route output + MiddlewareSettingsR input output }
 
 -- | Given a router, handle unhandled exceptions it raises by
 -- | responding with 500 Internal Server Error.
-onError500 :: forall request. (request -> ResponseM) -> request -> ResponseM
+onError500 :: forall m request. MonadError Error m => MonadAff m => (request -> m Response) -> request -> m Response
 onError500 router request =
   catchError (router request) \err -> do
     liftEffect $ error $ message err
     internalServerError "Internal server error"
 
-defaultMiddlewareErrorHandler :: Error -> Request Unit -> Aff Response
+defaultMiddlewareErrorHandler :: forall m. MonadAff m => Error -> Request Unit -> m Response
 defaultMiddlewareErrorHandler err _ = do
   liftEffect $ error $ message err
   internalServerError "Internal server error"
 
 -- | handle requests without a routing adt.
-handleRequestUnit ::
-  (Request Unit -> ResponseM) ->
+handleRequestUnit :: forall m.
+  MonadError Error m =>
+  MonadAff m =>
+  (Request Unit -> m Response) ->
   IncomingMessage IMServer ->
   ServerResponse ->
-  Effect Unit
+  m Unit
 handleRequestUnit router request httpresponse =
-  void $ runAff (\_ -> pure unit) $ fromHTTPRequestUnit request
+  void $ fromHTTPRequestUnit request
     >>= (onError500 router)
     >>= send httpresponse
 
 -- | This function takes a record containing the 
 -- |  * route - the routing adt
 -- |  * router - the request handler (a method which takes a `Request` and returns a
--- | `ResponseM`)
+-- | `m Response`)
 -- |  * notFoundHandler - a handler to handle 404s 
 -- | as well as  an HTTP `Request` and an HTTP `Response`. It runs the
--- | request, extracts the `Response` from the `ResponseM`, and sends the
+-- | request, extracts the `Response` from the `m Response`, and sends the
 -- | `Response` to the HTTP `Response`.
 handleExtRequest ::
-  forall ctx ctxRL thru route.
+  forall m ctx ctxRL thru route.
+  MonadError Error m =>
+  MonadAff m =>
   Union ctx thru ctx =>
   RowToList ctx ctxRL =>
   Keys ctx =>
   Nub (RequestR route ctx) (RequestR route ctx) =>
   { route :: RD.RouteDuplex' route
-  , router :: ExtRequestNT route ctx -> ResponseM
-  , notFoundHandler :: Request Unit -> ResponseM
+  , router :: ExtRequestNT route ctx -> m Response
+  , notFoundHandler :: Request Unit -> m Response
   } ->
   IncomingMessage IMServer ->
   ServerResponse ->
-  Aff Unit
+  m Unit
 handleExtRequest { route, router, notFoundHandler } req resp = do
   httpurpleReq <- fromHTTPRequestExt route (Proxy :: Proxy ctx) req
   httpurpleResp <- (notFoundHandler ||| onError500 router) httpurpleReq
   send resp httpurpleResp
 
 handleRequest ::
-  forall ctx ctxRL thru route.
+  forall ctx ctxRL thru route m.
+  MonadAff m =>
+  MonadError Error m =>
   Union ctx thru ctx =>
   RowToList ctx ctxRL =>
   Keys ctx =>
   Nub (RequestR route ctx) (RequestR route ctx) =>
   { route :: RD.RouteDuplex' route
-  , router :: ExtRequestNT route ctx -> ResponseM
-  , notFoundHandler :: Request Unit -> ResponseM
+  , router :: ExtRequestNT route ctx -> m Response
+  , notFoundHandler :: Request Unit -> m Response
   } ->
   IncomingMessage IMServer ->
   ServerResponse ->
-  Effect Unit
-handleRequest settings request response = void $ runAff (\_ -> pure unit) $ handleExtRequest settings request response
+  m Unit
+handleRequest settings request response = void $ handleExtRequest settings request response
 
 handleExtRequestWithMiddleware ::
-  forall input output outputRL thru route.
+  forall input output outputRL thru route m.
+  MonadAff m =>
+  MonadError Error m =>
   Union output thru output =>
   RowToList output outputRL =>
   Keys output =>
   Nub (RequestR route output) (RequestR route output) =>
   { route :: RD.RouteDuplex' route
   , nodeMiddleware :: NodeMiddlewareStack input output
-  , router :: ExtRequestNT route output -> ResponseM
-  , notFoundHandler :: Request Unit -> ResponseM
+  , router :: ExtRequestNT route output -> m Response
+  , notFoundHandler :: Request Unit -> m Response
   } ->
   IncomingMessage IMServer ->
   ServerResponse ->
-  Effect Unit
-handleExtRequestWithMiddleware { route, nodeMiddleware: NodeMiddlewareStack middleware, router, notFoundHandler } req resp = void $ runAff (\_ -> pure unit) $ do
+  m Unit
+handleExtRequestWithMiddleware { route, nodeMiddleware: NodeMiddlewareStack middleware, router, notFoundHandler } req resp = void $ do
   eff <- liftEffect $ flip runContT (coerce >>> pure) $ middleware (MiddlewareResult { request: req, response: resp, middlewareResult: NotCalled })
   executeHandler eff
   where
 
-  executeHandler :: MiddlewareResult output -> Aff Unit
+  executeHandler :: MiddlewareResult output -> m Unit
   executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingFailed error }) =
-    liftEffect $ handleRequestUnit (defaultMiddlewareErrorHandler error) request response
+    handleRequestUnit (defaultMiddlewareErrorHandler error) request response
   executeHandler (MiddlewareResult { request, response, middlewareResult: ProcessingSucceeded }) =
     handleExtRequest { route, router, notFoundHandler } request response
   executeHandler (MiddlewareResult { middlewareResult: NotCalled }) =
     pure unit
 
-defaultNotFoundHandler :: forall route. Request route -> ResponseM
+defaultNotFoundHandler :: forall route m. MonadAff m => Request route -> m Response
 defaultNotFoundHandler = const notFound
 
 asExtended ::
@@ -190,25 +201,28 @@ asExtended ::
 asExtended = lcmap unwrap
 
 serveInternal ::
-  forall route from fromRL via missing missingList input output outputRL thru.
+  forall m route from fromRL via missing missingList input output outputRL thru.
+  MonadAff m =>
+  MonadError Error m =>
   RowToList missing missingList =>
   FillableFields missingList () missing =>
-  Union via missing (ListenOptionsR) =>
+  Union via missing (ListenOptionsR m) =>
   RowToList from fromRL =>
   JustifiableFields fromRL from () via =>
   Union output thru output =>
   RowToList output outputRL =>
   KeysRL outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
+  (m Unit -> Aff Unit) ->
   { | from } ->
   Maybe (NodeMiddlewareStack input output) ->
   { route :: RD.RouteDuplex' route
-  , router :: ExtRequestNT route output -> ResponseM
+  , router :: ExtRequestNT route output -> m Response
   } ->
   ServerM
-serveInternal inputOptions maybeNodeMiddleware settings = do
+serveInternal performM inputOptions maybeNodeMiddleware settings = do
   let
-    filledOptions :: ListenOptions
+    filledOptions :: ListenOptions m
     filledOptions = justifill inputOptions
 
     host = fromMaybe defaultHostname filledOptions.hostname
@@ -221,52 +235,70 @@ serveInternal inputOptions maybeNodeMiddleware settings = do
       , backlog: fromMaybe 511 filledOptions.backlog
       }
 
-    routingSettings = merge settings { notFoundHandler: fromMaybe defaultNotFoundHandler filledOptions.notFoundHandler }
+    routingSettings = merge settings { notFoundHandler: fromMaybe defaultNotFoundHandler $ filledOptions.notFoundHandler }
 
-    handler = case maybeNodeMiddleware of
-      Just nodeMiddleware -> handleExtRequestWithMiddleware $ merge routingSettings { nodeMiddleware }
-      Nothing -> handleRequest routingSettings
+    handler req rep = launchAff_ $ performM $ case maybeNodeMiddleware of
+      Just nodeMiddleware -> handleExtRequestWithMiddleware (merge routingSettings { nodeMiddleware }) req rep
+      Nothing -> handleRequest routingSettings req rep
     sslOptions = { certFile: _, keyFile: _ } <$> filledOptions.certFile <*> filledOptions.keyFile
   netServer <- case sslOptions of
     Just { certFile, keyFile } -> do
-      cert' <- readFile certFile
-      key' <- readFile keyFile
-      server <- HTTPS.createSecureServer'
+      cert' <- liftEffect $ readFile certFile
+      key' <- liftEffect $ readFile keyFile
+      server <- liftEffect $ HTTPS.createSecureServer'
         { key: [ key' ]
         , cert: [ cert' ]
         }
-      server # EE.on_ HServer.requestH handler
+      liftEffect $ EE.on_ HServer.requestH handler server
       pure $ HServer.toNetServer server
     Nothing -> do
-      server <- HTTP.createServer
-      server # EE.on_ HServer.requestH handler
+      server <- liftEffect $ HTTP.createServer
+      liftEffect $ EE.on_ HServer.requestH handler server
       pure $ HServer.toNetServer server
-  netServer # EE.on_ listeningH onStarted
-  listenTcp netServer options
+  liftEffect $ EE.on_ listeningH (launchAff_ $ performM onStarted) netServer
+  liftEffect $ listenTcp netServer options
   let closingHandler = NServer.close netServer
-  liftEffect $ registerClosingHandler filledOptions.closingHandler (\eff -> eff *> closingHandler)
+  srv <- registerClosingHandler filledOptions.closingHandler (\eff -> eff *> closingHandler)
+  liftEffect srv
 
 serve ::
   forall route from fromRL via missing missingList.
   RowToList missing missingList =>
   FillableFields missingList () missing =>
-  Union via missing (ListenOptionsR) =>
+  Union via missing (ListenOptionsR Aff) =>
   RowToList from fromRL =>
   JustifiableFields fromRL from () via =>
   { | from } ->
-  BasicRoutingSettings route ->
+  BasicRoutingSettings Aff route ->
   ServerM
 serve inputOptions { route, router } = do
   let
     extendedSettings = { route, router: asExtended router }
+  serveInternal identity inputOptions Nothing extendedSettings
 
-  serveInternal inputOptions Nothing extendedSettings
+serve' ::
+  forall m route from fromRL via missing missingList.
+  MonadAff m =>
+  MonadError Error m =>
+  RowToList missing missingList =>
+  FillableFields missingList () missing =>
+  Union via missing (ListenOptionsR m) =>
+  RowToList from fromRL =>
+  JustifiableFields fromRL from () via =>
+  (m Unit -> Aff Unit) ->
+  { | from } ->
+  BasicRoutingSettings m route ->
+  ServerM
+serve' ma inputOptions { route, router } = do
+  let
+    extendedSettings = { route, router: asExtended router }
+  serveInternal ma inputOptions Nothing extendedSettings
 
 serveNodeMiddleware ::
   forall route from fromRL via missing missingList input output outputRL thru.
   RowToList missing missingList =>
   FillableFields missingList () missing =>
-  Union via missing (ListenOptionsR) =>
+  Union via missing (ListenOptionsR Aff) =>
   RowToList from fromRL =>
   JustifiableFields fromRL from () via =>
   Union output thru output =>
@@ -274,17 +306,17 @@ serveNodeMiddleware ::
   KeysRL outputRL =>
   Nub (RequestR route output) (RequestR route output) =>
   { | from } ->
-  ExtRoutingSettings route input output ->
+  ExtRoutingSettings Aff route input output ->
   ServerM
 serveNodeMiddleware inputOptions { route, router, nodeMiddleware } = do
   let
     extendedSettings = { route, router: asExtended router }
 
-  serveInternal inputOptions (Just nodeMiddleware) extendedSettings
+  serveInternal identity inputOptions (Just nodeMiddleware) extendedSettings
 
-registerClosingHandler :: Maybe ClosingHandler -> (Effect Unit -> Effect Unit) -> ServerM
-registerClosingHandler (Just NoClosingHandler) closingHandler = pure closingHandler
-registerClosingHandler _ closingHandler = do
+registerClosingHandler :: forall m. MonadEffect m => Maybe ClosingHandler -> (Effect Unit -> Effect Unit) -> m ServerM
+registerClosingHandler (Just NoClosingHandler) closingHandler = pure $ pure closingHandler
+registerClosingHandler _ closingHandler = pure $ liftEffect do
   Process.process # EE.on_ (mkSignalH SIGINT) (closingHandler $ log "Aye, stopping service now. Goodbye!")
   Process.process # EE.on_ (mkSignalH SIGTERM) (closingHandler $ log "Arrgghh I got stabbed in the back 🗡 ... good...bye...")
   pure closingHandler
@@ -295,5 +327,5 @@ defaultHostname = "0.0.0.0"
 defaultPort :: Int
 defaultPort = 8080
 
-defaultOnStart :: String -> Int -> Effect Unit
-defaultOnStart hostname port = log $ "HTTPurple 🪁 up and running on http://" <> hostname <> ":" <> show port
+defaultOnStart :: forall m. MonadEffect m => String -> Int -> m Unit
+defaultOnStart hostname port = liftEffect $ log $ "HTTPurple 🪁 up and running on http://" <> hostname <> ":" <> show port

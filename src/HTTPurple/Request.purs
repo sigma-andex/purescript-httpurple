@@ -11,13 +11,16 @@ module HTTPurple.Request
 
 import Prelude
 
+import Control.Monad.Error.Class (class MonadError)
 import Data.Bifunctor (rmap)
 import Data.Bitraversable (bitraverse)
 import Data.Either (Either)
 import Data.Newtype (class Newtype)
 import Data.String (joinWith)
 import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
+import Effect.Exception (Error)
 import Foreign.Object (isEmpty, toArrayWithKey)
 import HTTPurple.Body (RequestBody)
 import HTTPurple.Body (read) as Body
@@ -97,16 +100,18 @@ mkRequest request route = do
 
 -- | Given an HTTP `Request` object, this method will convert it to an HTTPurple
 -- | `Request` object.
-fromHTTPRequest :: forall route. RD.RouteDuplex' route -> IncomingMessage IMServer -> Aff (Either (Request Unit) (Request route))
+fromHTTPRequest :: forall route m. MonadAff m => MonadError Error m => RD.RouteDuplex' route -> IncomingMessage IMServer -> m (Either (Request Unit) (Request route))
 fromHTTPRequest route request = do
   RD.parse route (IM.url request) #
     bitraverse (const $ mkRequest request unit) (mkRequest request)
 
-fromHTTPRequestUnit :: IncomingMessage IMServer -> Aff (Request Unit)
+fromHTTPRequestUnit :: forall m. MonadEffect m => IncomingMessage IMServer -> m (Request Unit)
 fromHTTPRequestUnit = flip mkRequest unit
 
 fromHTTPRequestExt ::
-  forall ctx ctxRL thru route.
+  forall ctx ctxRL thru route m.
+  MonadAff m =>
+  MonadError Error m =>
   Union ctx thru ctx =>
   Nub (RequestR route ctx) (RequestR route ctx) =>
   RowToList ctx ctxRL =>
@@ -114,7 +119,7 @@ fromHTTPRequestExt ::
   RD.RouteDuplex' route ->
   Proxy ctx ->
   IncomingMessage IMServer ->
-  Aff (Either (Request Unit) (ExtRequestNT route ctx))
+  m (Either (Request Unit) (ExtRequestNT route ctx))
 fromHTTPRequestExt route _ nodeRequest = do
   let
     extension :: Record ctx
