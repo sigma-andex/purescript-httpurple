@@ -10,12 +10,11 @@ import Effect.Exception (error)
 import Foreign.Object (empty)
 import HTTPurple.Request (Request)
 import HTTPurple.Response (Response, ok)
-import HTTPurple.Server (serve)
 import Routing.Duplex (RouteDuplex')
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G
 import Routing.Duplex.Generic as RG
-import Test.HTTPurple.TestHelpers (Test, get, get', getStatus, (?=))
+import Test.HTTPurple.TestHelpers (Test, serveAwaitStarted, get, get', getStatus, (?=))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (expectError)
 
@@ -35,13 +34,13 @@ serveSpec :: Test
 serveSpec =
   describe "serve" do
     it "boots a server on the given port" do
-      close <- liftEffect $ serve { hostname: "localhost", port: 8080 } { route, router: mockRouter }
+      close <- serveAwaitStarted { hostname: "localhost", port: 8080 } { route, router: mockRouter }
       out <- get 8080 empty "/test"
       liftEffect $ close $ pure unit
       out ?= "/test"
     it "responds with a 500 upon unhandled exceptions" do
       let router _ = throwError $ error "fail!"
-      close <- liftEffect $ serve { hostname: "localhost", port: 8080 } { route, router }
+      close <- serveAwaitStarted { hostname: "localhost", port: 8080 } { route, router }
       status <- getStatus 8080 empty "/test"
       liftEffect $ close $ pure unit
       status ?= 500
@@ -51,8 +50,7 @@ serve'Spec =
   describe "serve'" do
     it "boots a server with the given options" do
       close <-
-        liftEffect
-          $ serve { hostname: "localhost", port: 8080 } { route, router: mockRouter }
+        serveAwaitStarted { hostname: "localhost", port: 8080 } { route, router: mockRouter }
       out <- get 8080 empty "/test"
       liftEffect $ close $ pure unit
       out ?= "/test"
@@ -63,15 +61,13 @@ serveSecureSpec =
     describe "with valid key and cert files" do
       it "boots a server on the given port" do
         close <-
-          liftEffect
-            $ serve { hostname: "localhost", port: 8080, certFile: "./test/Mocks/Certificate.cer", keyFile: "./test/Mocks/Key.key" } { route, router: mockRouter }
+          serveAwaitStarted { hostname: "localhost", port: 8080, certFile: "./test/Mocks/Certificate.cer", keyFile: "./test/Mocks/Key.key" } { route, router: mockRouter }
         out <- get' 8080 empty "/test"
         liftEffect $ close $ pure unit
         out ?= "/test"
     describe "with invalid key and cert files" do
       it "throws" do
-        expectError $ liftEffect
-          $ serve { hostname: "localhost", port: 8080, certFile: "", keyFile: "" } { route, router: mockRouter }
+        expectError $ serveAwaitStarted { hostname: "localhost", port: 8080, certFile: "", keyFile: "" } { route, router: mockRouter }
 
 serveSecure'Spec :: Test
 serveSecure'Spec =
@@ -81,8 +77,7 @@ serveSecure'Spec =
         let
           options = { hostname: "localhost", port: 8080, certFile: "./test/Mocks/Certificate.cer", keyFile: "./test/Mocks/Key.key" }
         close <-
-          liftEffect
-            $ serve options { route, router: mockRouter }
+          serveAwaitStarted options { route, router: mockRouter }
         out <- get' 8080 empty "/test"
         liftEffect $ close $ pure unit
         out ?= "/test"

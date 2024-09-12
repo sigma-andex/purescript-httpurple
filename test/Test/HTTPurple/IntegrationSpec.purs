@@ -23,7 +23,7 @@ import Foreign.Object (empty, singleton)
 import Foreign.Object as Object
 import Node.Buffer (toArray)
 import Node.FS.Aff (readFile)
-import Test.HTTPurple.TestHelpers (Test, get, get', getBinary, getHeader, post, postBinary, (?=))
+import Test.HTTPurple.TestHelpers (Test, awaitStarted, awaitStartedSecure, get, get', getBinary, getHeader, post, postBinary, (?=))
 import Test.Spec (describe, it)
 import Test.Spec.Assertions.String (shouldStartWith)
 
@@ -31,6 +31,7 @@ asyncResponseSpec :: Test
 asyncResponseSpec =
   it "runs the async response example" do
     close <- liftEffect AsyncResponse.main
+    awaitStarted 8080
     response <- get 8080 empty "/"
     liftEffect $ close $ pure unit
     response ?= "hello world!"
@@ -39,6 +40,7 @@ binaryRequestSpec :: Test
 binaryRequestSpec =
   it "runs the binary request example" do
     close <- liftEffect BinaryRequest.main
+    awaitStarted 8080
     binaryBuf <- readFile BinaryResponse.filePath
     response <- postBinary 8080 empty "/" binaryBuf
     liftEffect $ close $ pure unit
@@ -48,6 +50,7 @@ binaryResponseSpec :: Test
 binaryResponseSpec =
   it "runs the binary response example" do
     close <- liftEffect BinaryResponse.main
+    awaitStarted 8080
     responseBuf <- getBinary 8080 empty "/"
     liftEffect $ close $ pure unit
     binaryBuf <- readFile BinaryResponse.filePath
@@ -59,6 +62,7 @@ chunkedSpec :: Test
 chunkedSpec =
   it "runs the chunked example" do
     close <- liftEffect Chunked.main
+    awaitStarted 8080
     response <- get 8080 empty "/"
     liftEffect $ close $ pure unit
     -- TODO this isn't a great way to validate this, we need a way of inspecting
@@ -69,6 +73,7 @@ customStackSpec :: Test
 customStackSpec =
   it "runs the custom stack example" do
     close <- liftEffect CustomStack.main
+    awaitStarted 8080
     response <- get 8080 empty "/"
     liftEffect $ close $ pure unit
     response ?= "hello, joe"
@@ -77,6 +82,7 @@ headersSpec :: Test
 headersSpec =
   it "runs the headers example" do
     close <- liftEffect Headers.main
+    awaitStarted 8080
     header <- getHeader 8080 empty "/" "X-Example"
     response <- get 8080 (singleton "X-Input" "test") "/"
     liftEffect $ close $ pure unit
@@ -87,6 +93,7 @@ helloWorldSpec :: Test
 helloWorldSpec =
   it "runs the hello world example" do
     close <- liftEffect HelloWorld.main
+    awaitStarted 8080
     response <- get 8080 empty "/"
     liftEffect $ close $ pure unit
     response ?= "hello world!"
@@ -95,6 +102,7 @@ jsonParsingSpec :: Test
 jsonParsingSpec =
   it "runs the hello world example" do
     close <- liftEffect JsonParsing.main
+    awaitStarted 8080
     response <- post 8080 empty "/" "{\"name\":\"world\"}"
     liftEffect $ close $ pure unit
     response ?= "{\"hello\": \"world\" }"
@@ -103,6 +111,7 @@ middlewareSpec :: Test
 middlewareSpec =
   it "runs the middleware example" do
     close <- liftEffect Middleware.main
+    awaitStarted 8080
     header <- getHeader 8080 empty "/" "X-Middleware"
     body <- get 8080 empty "/"
     header' <- getHeader 8080 empty "/middleware" "X-Middleware"
@@ -117,6 +126,7 @@ multiRouteSpec :: Test
 multiRouteSpec =
   it "runs the multi route example" do
     close <- liftEffect MultiRoute.main
+    awaitStarted 8080
     hello <- get 8080 empty "/hello"
     goodbye <- get 8080 empty "/goodbye"
     liftEffect $ close $ pure unit
@@ -127,6 +137,7 @@ pathSegmentsSpec :: Test
 pathSegmentsSpec =
   it "runs the path segments example" do
     close <- liftEffect PathSegments.main
+    awaitStarted 8080
     foo <- get 8080 empty "/segment/foo"
     somebars <- get 8080 empty "/some/bars"
     liftEffect $ close $ pure unit
@@ -137,6 +148,7 @@ postSpec :: Test
 postSpec =
   it "runs the post example" do
     close <- liftEffect Post.main
+    awaitStarted 8080
     response <- post 8080 empty "/" "test"
     liftEffect $ close $ pure unit
     response ?= "test"
@@ -145,6 +157,7 @@ queryParametersSpec :: Test
 queryParametersSpec =
   it "runs the query parameters example" do
     close <- liftEffect QueryParameters.main
+    awaitStarted 8080
     foo <- get 8080 empty "/?foo"
     bar <- get 8080 empty "/?bar=test"
     notbar <- get 8080 empty "/?bar=nottest"
@@ -159,6 +172,7 @@ sslSpec :: Test
 sslSpec =
   it "runs the ssl example" do
     close <- liftEffect SSL.main
+    awaitStartedSecure 8080
     response <- get' 8080 empty "/"
     liftEffect $ close $ pure unit
     response ?= "hello world!"
@@ -167,6 +181,7 @@ extensibleMiddlewareSpec :: Test
 extensibleMiddlewareSpec =
   it "runs the extensible middleware example" do
     close <- liftEffect ExtensibleMiddleware.main
+    awaitStarted 8080
     let headers = Object.singleton "X-Token" "123"
     body <- get 8080 headers "/"
     body' <- get 8080 empty "/"
@@ -178,6 +193,7 @@ nodeMiddlewareSpec :: Test
 nodeMiddlewareSpec =
   it "runs the node middleware example" do
     close <- liftEffect NodeMiddleware.main
+    awaitStarted 8080
     let headers = Object.singleton "X-Token" "123"
     body <- get 8080 headers "/"
     body' <- get 8080 empty "/"

@@ -25,11 +25,11 @@ route = RD.root $ RG.sum
 -- | Run a script and return it's stdout stream
 runScript :: String -> Aff (Readable ())
 runScript script =
-  liftEffect $ stdout <$> spawn "sh" [ "-c", script ] defaultSpawnOptions
+  liftEffect $ stdout <$> spawn "bash" [ "-c", script ] defaultSpawnOptions
 
 -- | Say 'hello world!' in chunks when run
 router :: Request Route -> Aff Response
-router = const $ runScript "echo 'hello '; sleep 1; echo 'world!'" >>= ok
+router = const $ runScript "echo 'hello '; sleep 0.1; echo 'world!'" >>= ok
 
 -- | Boot up the server
 main :: ServerM
