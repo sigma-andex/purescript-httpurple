@@ -20,7 +20,7 @@ corresponding to each helper--for instance, `HTTPure.ok'` and
 they also return response headers--see the [Setting Response
 Headers](#setting-response-headers) section below for more details.
 
-For a full list of helpers, see the [Response](../src/HTTPure/Response.purs)
+For a full list of helpers, see the [Response](../src/HTTPurple/Response.purs)
 module.
 
 In some cases, the defined helpers don't cover your needs--for instance, if

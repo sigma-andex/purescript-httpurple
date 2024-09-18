@@ -303,7 +303,7 @@ router { method } = HTTPurple.ok $ "received a " <> show method
 ```
 
 To see the list of methods that HTTPure understands, see the
-[Method](../src/HTTPure/Method.purs) module. To see an example server that
+[Method](../src/HTTPurple/Method.purs) module. To see an example server that
 routes based on the HTTP method, see [the Post
 example](./Examples/Post/Main.purs).
 
