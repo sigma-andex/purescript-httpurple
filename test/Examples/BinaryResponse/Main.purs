@@ -3,7 +3,6 @@ module Examples.BinaryResponse.Main where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Console (log)
 import HTTPurple (Request, ResponseHeaders, Response, ServerM, header, ok', serve)

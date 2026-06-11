@@ -13,7 +13,6 @@ import Effect (Effect)
 import Effect.Aff (Aff, delay, effectCanceler, makeAff, nonCanceler)
 import Effect.Aff.Compat (mkEffectFn1)
 import Effect.Class (liftEffect)
-import Effect.Console (log)
 import Effect.Exception (Error)
 import Effect.Ref as Ref
 import Foreign (Foreign)
