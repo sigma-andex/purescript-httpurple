@@ -1,0 +1,202 @@
+package:
+  name: httpurple
+  dependencies:
+    - aff
+    - arrays
+    - bifunctors
+    - console
+    - control
+    - effect
+    - either
+    - exceptions
+    - foldable-traversable
+    - foreign-object
+    - js-uri
+    - justifill
+    - literals
+    - maybe
+    - newtype
+    - node-buffer
+    - node-event-emitter
+    - node-fs
+    - node-http
+    - node-net
+    - node-process
+    - node-streams
+    - ordered-collections
+    - posix-types
+    - prelude
+    - profunctor
+    - record
+    - record-studio
+    - refs
+    - routing-duplex
+    - safe-coerce
+    - strings
+    - transformers
+    - tuples
+    - type-equality
+    - typelevel-prelude
+    - unsafe-coerce
+    - untagged-union
+  test:
+    main: Test.Main
+    dependencies:
+      - exceptions
+      - foreign
+      - node-child-process
+      - spec
+      - transformers
+      - unsafe-coerce
+      - typelevel-prelude
+      - js-date
+      - nullable
+      - tailrec
+workspace:
+  extraPackages:
+    node-buffer:
+      dependencies:
+        - arraybuffer-types
+        - effect
+        - maybe
+        - nullable
+        - st
+        - unsafe-coerce
+      git: https://github.com/purescript-node/purescript-node-buffer.git
+      ref: v9.0.0
+    node-fs:
+      dependencies:
+        - datetime
+        - effect
+        - either
+        - enums
+        - exceptions
+        - functions
+        - integers
+        - js-date
+        - maybe
+        - node-buffer
+        - node-path
+        - node-streams
+        - nullable
+        - partial
+        - prelude
+        - strings
+        - unsafe-coerce
+      git: https://github.com/purescript-node/purescript-node-fs.git
+      ref: v9.1.0
+    node-http:
+      dependencies:
+        - arraybuffer-types
+        - contravariant
+        - effect
+        - foreign
+        - foreign-object
+        - maybe
+        - node-buffer
+        - node-net
+        - node-streams
+        - node-tls
+        - node-url
+        - nullable
+        - options
+        - prelude
+        - unsafe-coerce
+      git: https://github.com/purescript-node/purescript-node-http.git
+      ref: v9.1.0
+    node-net:
+      dependencies:
+        - console
+        - datetime
+        - effect
+        - exceptions
+        - maybe
+        - node-buffer
+        - node-event-emitter
+        - node-fs
+        - node-streams
+        - nullable
+        - partial
+        - prelude
+        - unsafe-coerce
+      git: https://github.com/purescript-node/purescript-node-net.git
+      ref: v5.1.0
+    node-process:
+      dependencies:
+        - effect
+        - foreign
+        - foreign-object
+        - maybe
+        - node-event-emitter
+        - node-streams
+        - posix-types
+        - prelude
+        - unsafe-coerce
+      git: https://github.com/purescript-node/purescript-node-process.git
+      ref: v11.2.0
+    node-readline:
+      dependencies:
+        - effect
+        - foreign
+        - node-event-emitter
+        - node-process
+        - node-streams
+        - options
+        - prelude
+      git: https://github.com/purescript-node/purescript-node-readline.git
+      ref: v8.1.0
+    node-streams:
+      dependencies:
+        - aff
+        - effect
+        - exceptions
+        - maybe
+        - node-buffer
+        - node-event-emitter
+        - nullable
+        - prelude
+        - unsafe-coerce
+      git: https://github.com/purescript-node/purescript-node-streams.git
+      ref: v9.0.0
+    node-tls:
+      dependencies:
+        - console
+        - effect
+        - either
+        - exceptions
+        - foreign
+        - maybe
+        - node-buffer
+        - node-event-emitter
+        - node-net
+        - node-streams
+        - nullable
+        - partial
+        - prelude
+        - unsafe-coerce
+      git: https://github.com/purescript-node/purescript-node-tls.git
+      ref: v0.3.1
+    node-url:
+      dependencies:
+        - effect
+        - foreign
+        - nullable
+        - prelude
+        - tuples
+      git: https://github.com/purescript-node/purescript-node-url.git
+      ref: v7.0.0
+    node-zlib:
+      dependencies:
+        - aff
+        - console
+        - effect
+        - either
+        - functions
+        - node-buffer
+        - node-streams
+        - prelude
+        - unsafe-coerce
+      git: https://github.com/purescript-node/purescript-node-zlib.git
+      ref: v0.4.0
+  packageSet:
+    url: https://raw.githubusercontent.com/purescript/package-sets/psc-0.15.10-20230804/packages.json
