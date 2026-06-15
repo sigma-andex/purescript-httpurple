@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set up a PureScript toolchain
         uses: purescript-contrib/setup-purescript@main
@@ -20,9 +20,9 @@ jobs:
           purs-tidy: "latest"
 
       - name: Cache PureScript dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
-          key: ${{ runner.os }}-spago-${{ hashFiles('**/*.dhall') }}
+          key: ${{ runner.os }}-spago-${{ hashFiles('spago.yaml') }}
           path: |
             .spago
             output
@@ -33,14 +33,7 @@ jobs:
         run: spago build --no-install --purs-args '--censor-lib --strict'
 
       - name: Run tests
-        run: spago -x test.dhall test
+        run: spago test
 
       - name: Check formatting
         run: purs-tidy check src test
-
-      - name: Verify Bower & Pulp
-        if: ${{ github.ref == 'refs/heads/main' }}
-        run: |
-          npm install bower pulp@16.0.1
-          npx bower install
-          npx pulp build -- --censor-lib --strict
