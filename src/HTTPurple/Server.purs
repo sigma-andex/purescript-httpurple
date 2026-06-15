@@ -238,9 +238,12 @@ serveInternal performM inputOptions maybeNodeMiddleware settings = do
 
     routingSettings = merge settings { notFoundHandler: fromMaybe defaultNotFoundHandler $ filledOptions.notFoundHandler }
 
-    handler req rep = launchAff_ $ performM $ case maybeNodeMiddleware of
-      Just nodeMiddleware -> handleExtRequestWithMiddleware (merge routingSettings { nodeMiddleware }) req rep
-      Nothing -> handleRequest routingSettings req rep
+    handler req rep =
+      let action = case maybeNodeMiddleware of
+            Just nodeMiddleware -> handleExtRequestWithMiddleware (merge routingSettings { nodeMiddleware }) req rep
+            Nothing -> handleRequest routingSettings req rep
+      in launchAff_ (performM action)
+
     sslOptions = { certFile: _, keyFile: _ } <$> filledOptions.certFile <*> filledOptions.keyFile
   netServer <- case sslOptions of
     Just { certFile, keyFile } -> do

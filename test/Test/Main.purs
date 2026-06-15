@@ -31,8 +31,7 @@ main = launchAff_ $ runSpec [ specReporter ] $ describe "HTTPurple" do
   querySpec
   requestSpec
   responseSpec
-  -- TODO
-  --serverSpec
+  serverSpec
   statusSpec
   utilsSpec
   versionSpec
