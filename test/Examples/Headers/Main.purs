@@ -5,7 +5,7 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseHeaders, Response, ServerM, ok', serve, (!@))
+import HTTPurple (Request, Response, ResponseHeaders, ServerM, ok', serve, (!@))
 import HTTPurple.Headers (headers)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG

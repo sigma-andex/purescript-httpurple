@@ -31,7 +31,7 @@ sayHello _ = do
 -- | Boot up the server
 main :: ServerM
 main =
-  serve' (\a -> runReaderT a {name: "joe"}) { hostname: "localhost", port: 8080, onStarted } { route, router: sayHello }
+  serve' (\a -> runReaderT a { name: "joe" }) { hostname: "localhost", port: 8080, onStarted } { route, router: sayHello }
   where
   onStarted = do
     log " ┌───────────────────────────────────────┐"

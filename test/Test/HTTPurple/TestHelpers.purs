@@ -26,11 +26,11 @@ import Node.Buffer (alloc, concat, toString) as Buffer
 import Node.Encoding (Encoding(UTF8))
 import Node.EventEmitter (EventHandle(..), once_)
 import Node.EventEmitter.UtilTypes (EventHandle1)
+import Node.HTTP (RequestOptions)
 import Node.HTTP.ClientRequest as HTTPClient
 import Node.HTTP.IncomingMessage as IM
 import Node.HTTP.OutgoingMessage as OM
 import Node.HTTP.Types (ClientRequest, IMClientRequest, IncomingMessage, ServerResponse)
-import Node.HTTP (RequestOptions)
 import Node.HTTPS (SecureRequestOptions)
 import Node.Net.Socket as Socket
 import Node.Net.Types (Socket)
@@ -148,12 +148,10 @@ request secure port' method' headers' path' body =
       $ Stream.end stream
     pure nonCanceler
 
-
 httpRequestOptsNoAgent :: forall r trash. Union r trash (RequestOptions ()) => { | r } -> Effect ClientRequest
 httpRequestOptsNoAgent = httpRequestOptsNoAgentImpl
 
 foreign import httpRequestOptsNoAgentImpl :: forall r. { | r } -> Effect ClientRequest
-
 
 httpsRequestOptsNoAgent :: forall r trash. Union r trash SecureRequestOptions => { | r } -> Effect ClientRequest
 httpsRequestOptsNoAgent = httpsRequestOptsNoAgentImpl
