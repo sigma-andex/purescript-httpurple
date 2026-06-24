@@ -2,7 +2,6 @@ module Test.Main where
 
 import Prelude
 
-import Effect.Aff (launchAff_)
 import Test.HTTPurple.BodySpec (bodySpec)
 import Test.HTTPurple.HeadersSpec (headersSpec)
 import Test.HTTPurple.IntegrationSpec (integrationSpec)
@@ -19,10 +18,10 @@ import Test.HTTPurple.UtilsSpec (utilsSpec)
 import Test.HTTPurple.VersionSpec (versionSpec)
 import Test.Spec (describe)
 import Test.Spec.Reporter (specReporter)
-import Test.Spec.Runner (runSpec)
+import Test.Spec.Runner.Node (runSpecAndExitProcess)
 
 main :: TestSuite
-main = launchAff_ $ runSpec [ specReporter ] $ describe "HTTPurple" do
+main = runSpecAndExitProcess [ specReporter ] $ describe "HTTPurple" do
   bodySpec
   headersSpec
   lookupSpec

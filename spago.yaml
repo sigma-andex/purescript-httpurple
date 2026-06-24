@@ -46,6 +46,7 @@ package:
       - foreign
       - node-child-process
       - spec
+      - spec-node
       - transformers
       - unsafe-coerce
       - typelevel-prelude
