@@ -1,5 +1,6 @@
 import { Readable } from "stream";
 import * as HTTP from "http";
+import * as HTTPS from "https";
 
 class MockResponse extends HTTP.OutgoingMessage {
   body = "";
@@ -67,6 +68,12 @@ export const mockRequestImpl =
 
 /** @type {() => MockResponse} */
 export const mockResponse = () => new MockResponse();
+
+/** @type {(opts: HTTP.RequestOptions) => () => HTTP.ClientRequest} */
+export const httpRequestOptsNoAgentImpl = (opts) => () => HTTP.request({ ...opts, agent: false });
+
+/** @type {(opts: HTTPS.RequestOptions) => () => HTTP.ClientRequest} */
+export const httpsRequestOptsNoAgentImpl = (opts) => () => HTTPS.request({ ...opts, agent: false });
 
 /** @type {(s: string) => Readable} */
 export const stringToStream = (str) => {

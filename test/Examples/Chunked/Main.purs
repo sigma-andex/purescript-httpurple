@@ -3,12 +3,11 @@ module Examples.Chunked.Main where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Class (liftEffect)
 import Effect.Console (log)
 import HTTPurple (Request, Response, ServerM, ok, serve)
-import Node.ChildProcess (defaultSpawnOptions, spawn, stdout)
+import Node.ChildProcess (spawn, stdout)
 import Node.Stream (Readable)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG
@@ -25,7 +24,7 @@ route = RD.root $ RG.sum
 -- | Run a script and return it's stdout stream
 runScript :: String -> Aff (Readable ())
 runScript script =
-  liftEffect $ stdout <$> spawn "bash" [ "-c", script ] defaultSpawnOptions
+  liftEffect $ stdout <$> spawn "bash" [ "-c", script ]
 
 -- | Say 'hello world!' in chunks when run
 router :: Request Route -> Aff Response

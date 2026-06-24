@@ -3,10 +3,9 @@ module Examples.BinaryResponse.Main where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Console (log)
-import HTTPurple (Request, ResponseHeaders, Response, ServerM, header, ok', serve)
+import HTTPurple (Request, Response, ResponseHeaders, ServerM, header, ok', serve)
 import Node.FS.Aff (readFile)
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as RG

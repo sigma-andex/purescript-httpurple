@@ -3,7 +3,6 @@ module Examples.Post.Main where
 import Prelude
 
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Console (log)
 import HTTPurple (Method(Post), Request, Response, ServerM, notFound, ok, serve, toString)

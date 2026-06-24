@@ -3,7 +3,6 @@ module Examples.MultiRoute.Main where
 import Prelude hiding ((/))
 
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Effect.Aff (Aff)
 import Effect.Console (log)
 import HTTPurple (Request, Response, ServerM, ok, serve)

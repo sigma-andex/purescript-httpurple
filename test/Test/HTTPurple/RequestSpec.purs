@@ -3,8 +3,7 @@ module Test.HTTPurple.RequestSpec where
 import Prelude
 
 import Control.Monad.Error.Class (throwError)
-import Data.Bitraversable (rtraverse)
-import Data.Either (Either(..), either, fromRight)
+import Data.Either (Either, either)
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe)
 import Data.Tuple (Tuple(Tuple))
@@ -12,9 +11,9 @@ import Effect.Aff (Aff)
 import Effect.Exception (error)
 import Foreign.Object (singleton)
 import HTTPurple.Body (toString)
-import HTTPurple.Headers (headers, mkRequestHeaders)
+import HTTPurple.Headers (mkRequestHeaders)
 import HTTPurple.Method (Method(Post))
-import HTTPurple.Request (fromHTTPRequest, fullPath)
+import HTTPurple.Request (fromHTTPRequest)
 import HTTPurple.Version (Version(HTTP1_1))
 import Routing.Duplex as RD
 import Routing.Duplex.Generic as G

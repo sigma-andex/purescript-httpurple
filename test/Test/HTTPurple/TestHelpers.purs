@@ -13,7 +13,6 @@ import Effect (Effect)
 import Effect.Aff (Aff, delay, effectCanceler, makeAff, nonCanceler)
 import Effect.Aff.Compat (mkEffectFn1)
 import Effect.Class (liftEffect)
-import Effect.Console (log)
 import Effect.Exception (Error)
 import Effect.Ref as Ref
 import Foreign (Foreign)
@@ -27,12 +26,12 @@ import Node.Buffer (alloc, concat, toString) as Buffer
 import Node.Encoding (Encoding(UTF8))
 import Node.EventEmitter (EventHandle(..), once_)
 import Node.EventEmitter.UtilTypes (EventHandle1)
-import Node.HTTP as HTTP
+import Node.HTTP (RequestOptions)
 import Node.HTTP.ClientRequest as HTTPClient
 import Node.HTTP.IncomingMessage as IM
 import Node.HTTP.OutgoingMessage as OM
-import Node.HTTP.Types (IMClientRequest, IncomingMessage, ServerResponse)
-import Node.HTTPS as HTTPS
+import Node.HTTP.Types (ClientRequest, IMClientRequest, IncomingMessage, ServerResponse)
+import Node.HTTPS (SecureRequestOptions)
 import Node.Net.Socket as Socket
 import Node.Net.Types (Socket)
 import Node.Stream (Readable)
@@ -84,6 +83,13 @@ serveAwaitStarted cfg rt =
     Ref.write (Just stop) stopRef
     pure $ effectCanceler $ stop $ pure unit
 
+-- | Closes a server and suspends the `Aff` until the server has fully shut down,
+-- | ensuring the port is released before proceeding and preventing `EADDRINUSE`
+serveAwaitClosed :: (Effect Unit -> Effect Unit) -> Aff Unit
+serveAwaitClosed close = makeAff \done -> do
+  close (done (Right unit))
+  pure nonCanceler
+
 infix 1 shouldEqual as ?=
 
 -- | The type for integration tests.
@@ -105,7 +111,7 @@ request ::
 request secure port' method' headers' path' body =
   makeAff \done -> do
     req <- case secure of
-      true -> HTTPS.requestOpts
+      true -> httpsRequestOptsNoAgent
         { method: method'
         , host: "localhost"
         , port: port'
@@ -113,7 +119,7 @@ request secure port' method' headers' path' body =
         , headers: unsafeCoerce headers' :: Object Foreign
         , rejectUnauthorized: false
         }
-      false -> HTTP.requestOpts
+      false -> httpRequestOptsNoAgent
         { method: method'
         , host: "localhost"
         , port: port'
@@ -121,8 +127,13 @@ request secure port' method' headers' path' body =
         , headers: unsafeCoerce headers' :: Object Foreign
         }
     let
+      errorH :: EventHandle1 ClientRequest Error
+      errorH = EventHandle "error" mkEffectFn1
+
       connectionAttemptFailedH :: forall t. EventHandle1 (Socket t) Error
       connectionAttemptFailedH = EventHandle "connectionAttemptFailed" mkEffectFn1
+
+    req # once_ errorH (Left >>> done)
 
     req # once_ HTTPClient.socketH
       ( \socket ->
@@ -136,6 +147,16 @@ request secure port' method' headers' path' body =
       $ const
       $ Stream.end stream
     pure nonCanceler
+
+httpRequestOptsNoAgent :: forall r trash. Union r trash (RequestOptions ()) => { | r } -> Effect ClientRequest
+httpRequestOptsNoAgent = httpRequestOptsNoAgentImpl
+
+foreign import httpRequestOptsNoAgentImpl :: forall r. { | r } -> Effect ClientRequest
+
+httpsRequestOptsNoAgent :: forall r trash. Union r trash SecureRequestOptions => { | r } -> Effect ClientRequest
+httpsRequestOptsNoAgent = httpsRequestOptsNoAgentImpl
+
+foreign import httpsRequestOptsNoAgentImpl :: forall r. { | r } -> Effect ClientRequest
 
 -- | Same as `request` but without.
 request' ::
