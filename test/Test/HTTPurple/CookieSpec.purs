@@ -39,6 +39,10 @@ requestCookiesSpec =
       it "ignores them" do
         requestCookies (mkRequestHeaders [ Tuple "Cookie" "; foo=bar; " ])
           ?= Map.singleton "foo" "bar"
+    describe "with duplicate names" do
+      it "keeps the first occurrence" do
+        requestCookies (mkRequestHeaders [ Tuple "Cookie" "foo=a; foo=b" ])
+          ?= Map.singleton "foo" "a"
 
 serializeSpec :: TestHelpers.Test
 serializeSpec =
