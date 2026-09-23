@@ -27,7 +27,7 @@ import Control.Alt ((<|>))
 import Control.Alternative (guard)
 import Data.Array (catMaybes, mapMaybe) as Array
 import Data.Map (Map)
-import Data.Map (empty, fromFoldable, insertWith) as Map
+import Data.Map (empty, fromFoldableWith, insertWith) as Map
 import Data.Maybe (Maybe(Nothing, Just), maybe)
 import Data.String (Pattern(Pattern), drop, indexOf, joinWith, null, split, take, trim)
 import Data.String.CaseInsensitive (CaseInsensitiveString(CaseInsensitiveString))
@@ -137,9 +137,11 @@ cookie' name value attrs =
 requestCookies :: RequestHeaders -> Map CookieName CookieValue
 requestCookies reqHeaders = lookup reqHeaders "Cookie" # maybe Map.empty parse
   where
+  -- A browser sends same-named cookies most-specific-path first (RFC 6265 §5.4), so on a
+  -- duplicate name keep the first occurrence, as other servers do.
   parse :: String -> Map CookieName CookieValue
   parse =
-    Map.fromFoldable
+    Map.fromFoldableWith (flip const)
       <<< split (Pattern ";")
       >>> map trim
       >>> Array.mapMaybe toNameValuePair
