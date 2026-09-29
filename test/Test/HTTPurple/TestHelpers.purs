@@ -158,7 +158,7 @@ httpsRequestOptsNoAgent = httpsRequestOptsNoAgentImpl
 
 foreign import httpsRequestOptsNoAgentImpl :: forall r. { | r } -> Effect ClientRequest
 
--- | Same as `request` but without.
+-- | Same as `request` but without a body.
 request' ::
   Boolean ->
   Int ->

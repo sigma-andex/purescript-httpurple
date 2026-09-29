@@ -20,13 +20,14 @@ import Examples.Post.Main as Post
 import Examples.Query.Main as Query
 import Examples.QueryParameters.Main as QueryParameters
 import Examples.SSL.Main as SSL
+import Examples.Static.Main as Static
 import Foreign.Object (empty, singleton)
 import Foreign.Object as Object
 import Node.Buffer (toArray)
 import Node.FS.Aff (readFile)
-import Test.HTTPurple.TestHelpers (Test, awaitStarted, awaitStartedSecure, get, get', getBinary, getHeader, post, postBinary, query, query', (?=))
+import Test.HTTPurple.TestHelpers (Test, awaitStarted, awaitStartedSecure, get, get', getBinary, getHeader, getStatus, post, postBinary, query, query', (?=))
 import Test.Spec (describe, it)
-import Test.Spec.Assertions.String (shouldStartWith)
+import Test.Spec.Assertions.String (shouldContain, shouldStartWith)
 
 asyncResponseSpec :: Test
 asyncResponseSpec =
@@ -241,6 +242,26 @@ nodeMiddlewareSpec =
     body `shouldStartWith` "hello John Doe"
     body' `shouldStartWith` "hello anonymous"
 
+staticSpec :: Test
+staticSpec =
+  it "runs the static example" do
+    close <- liftEffect Static.main
+    awaitStarted 8080
+    home <- get 8080 empty "/"
+    stylesheetType <- getHeader 8080 empty "/static/style.css" "Content-Type"
+    image <- getBinary 8080 empty "/static/circle.png"
+    missing <- getStatus 8080 empty "/static/missing.css"
+    secret <- getStatus 8080 empty "/static/.secret"
+    liftEffect $ close $ pure unit
+    home `shouldContain` "<title>HTTPurple static example</title>"
+    stylesheetType ?= "text/css; charset=utf-8"
+    imageBuf <- readFile (Static.root <> "/circle.png")
+    expected <- liftEffect $ toArray imageBuf
+    actual <- liftEffect $ toArray image
+    actual ?= expected
+    missing ?= 404
+    secret ?= 404
+
 integrationSpec :: Test
 integrationSpec =
   describe "Integration" do
@@ -261,6 +282,7 @@ integrationSpec =
     postSpec
     queryParametersSpec
     sslSpec
+    staticSpec
     jsonParsingSpec
     extensibleMiddlewareSpec
     nodeMiddlewareSpec

@@ -14,6 +14,7 @@ module HTTPurple
   , module HTTPurple.Request
   , module HTTPurple.Response
   , module HTTPurple.Server
+  , module HTTPurple.Static
   , module HTTPurple.Status
   , module HTTPurple.Validation
   , module Routing.Duplex
@@ -63,6 +64,7 @@ import HTTPurple.Server
   , serve'
   , serveNodeMiddleware
   )
+import HTTPurple.Static (Dotfiles(..), RootError(..), StaticOptions, StaticOptionsR, serveStatic)
 import HTTPurple.Status (Status)
 import HTTPurple.Validation (fromValidated, fromValidatedE)
 import Routing.Duplex (class RouteDuplexBuildParams, class RouteDuplexParams, RouteDuplex(..), RouteDuplex', as, boolean, buildParams, default, end, flag, int, many, many1, optional, param, params, parse, path, prefix, print, prop, record, rest, root, segment, string, suffix, (:=))
