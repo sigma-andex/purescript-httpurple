@@ -13,6 +13,7 @@ import Test.HTTPurple.QuerySpec (querySpec)
 import Test.HTTPurple.RequestSpec (requestSpec)
 import Test.HTTPurple.ResponseSpec (responseSpec)
 import Test.HTTPurple.ServerSpec (serverSpec)
+import Test.HTTPurple.StaticSpec (staticSpec)
 import Test.HTTPurple.StatusSpec (statusSpec)
 import Test.HTTPurple.TestHelpers (TestSuite)
 import Test.HTTPurple.UtilsSpec (utilsSpec)
@@ -33,6 +34,7 @@ main = runSpecAndExitProcess [ specReporter ] $ describe "HTTPurple" do
   requestSpec
   responseSpec
   serverSpec
+  staticSpec
   statusSpec
   utilsSpec
   versionSpec

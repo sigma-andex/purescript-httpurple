@@ -10,6 +10,7 @@ package:
     - either
     - exceptions
     - foldable-traversable
+    - foreign
     - foreign-object
     - js-uri
     - justifill
@@ -21,6 +22,7 @@ package:
     - node-fs
     - node-http
     - node-net
+    - node-path
     - node-process
     - node-streams
     - ordered-collections

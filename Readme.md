@@ -24,6 +24,7 @@ A functional http server with a focus on type-safety and making the common case 
 * 🛣 Powerful & type-safe routing dsl
 * 🕵🏻‍♂️ Easy json parsing and data validation
 * 🥪 Supports Node/Express middlewares
+* 📁 Static file serving with path containment
 * 📜 Extensive documentation & examples
 
 
@@ -90,6 +91,7 @@ See the [docs folder](./docs) for the in-depth guides.
 * [Requests](./docs/Requests.md) - Guide to request handling
 * [Response](./docs/Responses.md) - Guide to response handling
 * [Cookies](./docs/Cookies.md) - Guide to reading and setting cookies
+* [Static files](./docs/Static.md) - Guide to serving files from a directory
 * [Middleware](./docs/Middleware.md) - Guide to HTTPurple and Node.js middlewares
 * [Differences](./docs/Differences.md) - A detailed description of the differences to HTTPure
 
